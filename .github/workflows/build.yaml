@@ -37,6 +37,7 @@ jobs:
             echo "Detected Solana version: ${SOLANA_VERSION}"
           fi
           echo "SOLANA_VERSION=${SOLANA_VERSION}" >> $GITHUB_ENV
+          echo "SOLANA_CLI_VERSION=${SOLANA_VERSION}" >> $GITHUB_ENV
 
           # Extract Anchor version from Cargo.lock or use override
           if [ -n "${{ github.event.inputs.anchor_version }}" ]; then

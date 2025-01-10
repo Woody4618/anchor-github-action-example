@@ -1,0 +1,144 @@
+name: Build Program
+
+on:
+  workflow_dispatch:  # Allow manual triggering
+    inputs:
+      program:
+        description: 'Program to build'
+        required: true
+        default: 'transaction_example'
+      solana_version:
+        description: 'Override Solana version'
+        required: false
+      anchor_version:
+        description: 'Override Anchor version'
+        required: false
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Extract Versions
+        id: versions
+        run: |
+          # Extract Solana version from Cargo.lock or use override
+          if [ -n "${{ github.event.inputs.solana_version }}" ]; then
+            SOLANA_VERSION="${{ github.event.inputs.solana_version }}"
+            echo "Using override Solana version: ${SOLANA_VERSION}"
+          else
+            SOLANA_VERSION=$(grep -A 2 'name = "solana-program"' Cargo.lock | grep 'version' | cut -d'"' -f2)
+            echo "Detected Solana version: ${SOLANA_VERSION}"
+          fi
+          echo "SOLANA_VERSION=${SOLANA_VERSION}" >> $GITHUB_ENV
+
+          # Extract Anchor version from Cargo.lock or use override
+          if [ -n "${{ github.event.inputs.anchor_version }}" ]; then
+            ANCHOR_VERSION="${{ github.event.inputs.anchor_version }}"
+            echo "Using override Anchor version: ${ANCHOR_VERSION}"
+          else
+            ANCHOR_VERSION=$(grep -A 2 'name = "anchor-lang"' Cargo.lock | grep 'version' | cut -d'"' -f2)
+            echo "Detected Anchor version: ${ANCHOR_VERSION}"
+          fi
+          echo "ANCHOR_VERSION=${ANCHOR_VERSION}" >> $GITHUB_ENV
+
+      - name: Install Solana
+        uses: ./.github/actions/setup-solana
+
+      - name: Install Anchor
+        uses: ./.github/actions/setup-anchor
+        with:
+          anchor-version: ${{ env.ANCHOR_VERSION }}
+
+      - name: Set Program Variables
+        run: |
+          PROGRAM="${{ github.event.inputs.program || 'transaction-example' }}"
+          PROGRAM_NAME=${PROGRAM//-/_}
+          echo "Looking for program ${PROGRAM_NAME} in Anchor.toml"
+          cat ./Anchor.toml
+          echo "Running toml command:"
+          ~/.cargo/bin/toml get ./Anchor.toml programs.localnet.${PROGRAM_NAME} || true
+          PROGRAM_ID=$(~/.cargo/bin/toml get ./Anchor.toml programs.localnet.${PROGRAM_NAME} | tr -d '"')
+          echo "Program: $PROGRAM_ID"
+          echo "PROGRAM_NAME=${PROGRAM_NAME}" >> $GITHUB_ENV
+          echo "PROGRAM_ID=${PROGRAM_ID}" >> $GITHUB_ENV
+
+      - name: Debug Initial Structure
+        run: |
+          echo "Current directory structure:"
+          pwd
+          ls -la
+          echo "Programs directory:"
+          ls -la programs/ || true
+          echo "Anchor.toml contents:"
+          cat Anchor.toml
+
+      - uses: ./.github/actions/build-anchor/
+        with:
+          testing: false
+          devnet: true
+          program: ${{ env.PROGRAM_NAME }}
+
+      - name: Create local artifacts directory
+        run: |
+          # Create directories
+          mkdir -p build-artifacts/so
+          mkdir -p build-artifacts/idl
+          
+          # Check if source files exist
+          echo "Checking source files:"
+          ls -la ./target/deploy/
+          ls -la ./target/idl/
+          
+          # Copy with verbose flag
+          cp -v ./target/deploy/${{ env.PROGRAM_NAME }}.so build-artifacts/so/
+          cp -v ./target/idl/${{ env.PROGRAM_NAME }}.json build-artifacts/idl/
+          
+          # Check copied files
+          echo "Checking copied files:"
+          ls -la build-artifacts/so/
+          ls -la build-artifacts/idl/
+          
+          # Set permissions
+          chmod -R 777 build-artifacts/
+          
+          echo "Artifacts copied to project directory at:"
+          echo "SO file: ./build-artifacts/so/${{ env.PROGRAM_NAME }}.so"
+          echo "IDL file: ./build-artifacts/idl/${{ env.PROGRAM_NAME }}.json"
+
+      - name: Store so files
+        if: ${{ !env.ACT }}  # Only run on GitHub Actions, skip for local act runs
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROGRAM_NAME }}-so
+          path: |
+            ./target/deploy/${{ env.PROGRAM_NAME }}.so
+
+      - name: Store idl files
+        if: ${{ !env.ACT }}  # Only run on GitHub Actions, skip for local act runs
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ env.PROGRAM_NAME }}-idl
+          path: |
+            ./target/idl/${{ env.PROGRAM_NAME }}.json
+
+      - name: Print Artifact Locations
+        run: |
+          echo "Artifacts stored locally at:"
+          echo "SO file: ./artifacts/build/${{ env.PROGRAM_NAME }}-so/target/deploy/${{ env.PROGRAM_NAME }}.so"
+          echo "IDL file: ./artifacts/build/${{ env.PROGRAM_NAME }}-idl/target/idl/${{ env.PROGRAM_NAME }}.json"
+
+      - uses: ./.github/actions/build-verified/
+        if: ${{ !env.ACT }}  # Skip on local runs
+        id: build-verified
+        with:
+          devnet: true
+          program: ${{ env.PROGRAM_NAME }}
+          program-id: ${{ env.PROGRAM_ID }}
+

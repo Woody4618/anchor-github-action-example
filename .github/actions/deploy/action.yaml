@@ -8,9 +8,8 @@ inputs:
     description: "Program ID"
     required: true
   network:
-    description: "Target network (devnet/mainnet)"
+    description: "The Solana network URL"
     required: true
-    default: "devnet"
   keypair:
     description: "Base58 encoded keypair for deployment (optional)"
     required: false
@@ -30,23 +29,16 @@ runs:
       uses: ./.github/actions/build-anchor/
       with:
         program: ${{ inputs.program }}
-        devnet: ${{ inputs.network == 'devnet' }}
+        devnet: ${{ contains(inputs.network, 'devnet') }}
 
     - name: Setup Network and Deploy
       shell: bash
       run: |
-        # Setup network
-        if [ "${{ inputs.network }}" = "mainnet" ]; then
-          solana config set --url https://api.mainnet-beta.solana.com
-        else
-          solana config set --url "https://api.devnet.solana.com"
-        fi
-
         # Setup keypair
         if [ ! -z "${{ inputs.keypair }}" ]; then
           echo "Using provided keypair"
           echo "${{ inputs.keypair }}" > keypair.json
-        elif [ "${{ inputs.network }}" = "mainnet" ]; then
+        elif [[ "${{ inputs.network }}" == *"mainnet"* ]]; then
           echo "Using mainnet deployer keypair"
           echo "$MAINNET_DEPLOYER_KEYPAIR" > keypair.json
         else
@@ -56,20 +48,30 @@ runs:
         solana config set --keypair keypair.json
 
         # Deploy program
-        if ! solana program show ${{ inputs.program-id }} --url ${{ inputs.network == 'mainnet' && 'https://api.mainnet-beta.solana.com' || 'https://api.devnet.solana.com' }}; then
+        if ! solana program show ${{ inputs.program-id }} -u ${{ inputs.network }}; then
           echo "Program not found, using PROGRAM_ADDRESS_KEYPAIR for initial deployment"
           echo "$PROGRAM_ADDRESS_KEYPAIR" > program-keypair.json
           solana program deploy \
             --program-id program-keypair.json \
-            target/deploy/${{ inputs.program }}.so --with-compute-unit-price 10000 --max-sign-attempts 1000 --use-rpc
+            target/deploy/${{ inputs.program }}.so \
+            --with-compute-unit-price 10000 \
+            --max-sign-attempts 1000 \
+            --use-rpc \
+            -u ${{ inputs.network }}
         else
           echo "Program exists, upgrading program ${{ inputs.program-id }}"
           solana program write-buffer target/deploy/${{ inputs.program }}.so \
-            --with-compute-unit-price 10000 --max-sign-attempts 1000 --use-rpc
-          BUFFER=$(solana program show --buffers | grep Buffer | cut -d ' ' -f1 | tail -n1)
-          solana program set-buffer-authority --new-buffer-authority $(solana address) $BUFFER
+            --with-compute-unit-price 10000 \
+            --max-sign-attempts 1000 \
+            --use-rpc \
+            -u ${{ inputs.network }}
+          BUFFER=$(solana program show --buffers -u ${{ inputs.network }} | grep Buffer | cut -d ' ' -f1 | tail -n1)
+          solana program set-buffer-authority --new-buffer-authority $(solana address) $BUFFER -u ${{ inputs.network }}
           solana program upgrade \
             target/deploy/${{ inputs.program }}.so \
             --program-id ${{ inputs.program-id }} \
-            --with-compute-unit-price 10000 --max-sign-attempts 1000 --use-rpc
+            --with-compute-unit-price 10000 \
+            --max-sign-attempts 1000 \
+            --use-rpc \
+            -u ${{ inputs.network }}
         fi 

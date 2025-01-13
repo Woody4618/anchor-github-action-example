@@ -13,6 +13,24 @@ on:
       anchor_version:
         description: 'Override Anchor version'
         required: false
+      network:
+        description: 'Target network for deployment'
+        required: false
+        default: 'devnet'
+        type: choice
+        options:
+          - devnet
+          - mainnet
+      deploy:
+        description: 'Deploy program'
+        required: false
+        type: boolean
+        default: false
+      upload_idl:
+        description: 'Upload IDL'
+        required: false
+        type: boolean
+        default: false
   push:
     branches: [main]
   pull_request:
@@ -33,7 +51,7 @@ jobs:
             SOLANA_VERSION="${{ github.event.inputs.solana_version }}"
             echo "Using override Solana version: ${SOLANA_VERSION}"
           else
-            SOLANA_VERSION=$(grep -A 2 'name = "solana-program"' Cargo.lock | grep 'version' | cut -d'"' -f2)
+            SOLANA_VERSION=$(grep -A 2 'name = "solana-program"' Cargo.lock | grep 'version' | head -n 1 | cut -d'"' -f2)
             echo "Detected Solana version: ${SOLANA_VERSION}"
           fi
           echo "SOLANA_VERSION=${SOLANA_VERSION}" >> $GITHUB_ENV
@@ -44,10 +62,25 @@ jobs:
             ANCHOR_VERSION="${{ github.event.inputs.anchor_version }}"
             echo "Using override Anchor version: ${ANCHOR_VERSION}"
           else
-            ANCHOR_VERSION=$(grep -A 2 'name = "anchor-lang"' Cargo.lock | grep 'version' | cut -d'"' -f2)
+            ANCHOR_VERSION=$(grep -A 2 'name = "anchor-lang"' Cargo.lock | grep 'version' | head -n 1 | cut -d'"' -f2)
             echo "Detected Anchor version: ${ANCHOR_VERSION}"
           fi
           echo "ANCHOR_VERSION=${ANCHOR_VERSION}" >> $GITHUB_ENV
+          
+          # Debug environment variables
+          echo "=== Environment Variables Debug ==="
+          echo "Content of GITHUB_ENV file:"
+          cat $GITHUB_ENV
+          echo "=== Direct Environment Variables ==="
+          echo "SOLANA_VERSION: $SOLANA_VERSION"
+          echo "ANCHOR_VERSION: $ANCHOR_VERSION"
+          echo "==========================="
+
+      - name: Debug Environment Before Anchor Setup
+        run: |
+          echo "=== Environment Variables Before Anchor Setup ==="
+          env | grep -E "SOLANA|ANCHOR"
+          echo "==========================="
 
       - name: Install Solana
         uses: ./.github/actions/setup-solana
@@ -135,11 +168,31 @@ jobs:
           echo "SO file: ./artifacts/build/${{ env.PROGRAM_NAME }}-so/target/deploy/${{ env.PROGRAM_NAME }}.so"
           echo "IDL file: ./artifacts/build/${{ env.PROGRAM_NAME }}-idl/target/idl/${{ env.PROGRAM_NAME }}.json"
 
-      - uses: ./.github/actions/build-verified/
-        if: ${{ !env.ACT }}  # Skip on local runs
-        id: build-verified
+      # - uses: ./.github/actions/build-verified/
+      #   if: ${{ !env.ACT }}  # Skip on local runs
+      #   id: build-verified
+      #   with:
+      #     devnet: true
+      #     program: ${{ env.PROGRAM_NAME }}
+      #     program-id: ${{ env.PROGRAM_ID }}
+
+      - uses: ./.github/actions/buffer-deploy/
+        id: buffer-deploy
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
         with:
           devnet: true
+          network: ${{ inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
           program: ${{ env.PROGRAM_NAME }}
           program-id: ${{ env.PROGRAM_ID }}
+          keypair: ${{ inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+          buffer-authority: ${{ inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
+
+
+      - uses: ./.github/actions/idl-upload/
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
+        with:
+          program-id: ${{ env.PROGRAM_ID }}
+          network: ${{ inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
+          keypair: ${{ secrets.IDL_AUTHORITY }}
+          idl-buffer: ${{ steps.buffer-deploy.outputs.idl-buffer }}
 

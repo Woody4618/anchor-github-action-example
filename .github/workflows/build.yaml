@@ -8,13 +8,13 @@ on:
         required: true
         default: 'transaction_example'
       solana_version:
-        description: 'Override Solana version'
+        description: 'Override Solana version (leave empty to use version from Cargo.lock)'
         required: false
       anchor_version:
-        description: 'Override Anchor version'
+        description: 'Override Anchor version (leave empty to use version from Cargo.lock)'
         required: false
       network:
-        description: 'Target network for deployment'
+        description: 'Target network for deployment (requires DEVNET_SOLANA_DEPLOY_URL or MAINNET_SOLANA_DEPLOY_URL secret)'
         required: false
         default: 'devnet'
         type: choice
@@ -22,12 +22,12 @@ on:
           - devnet
           - mainnet
       deploy:
-        description: 'Deploy program'
+        description: 'Deploy program (requires DEVNET_DEPLOYER_KEYPAIR/MAINNET_DEPLOYER_KEYPAIR and DEVNET_DEPLOYER_ADDRESS/MAINNET_DEPLOYER_ADDRESS secrets)'
         required: false
         type: boolean
         default: false
       upload_idl:
-        description: 'Upload IDL'
+        description: 'Upload IDL (requires IDL_AUTHORITY secret)'
         required: false
         type: boolean
         default: false
@@ -35,6 +35,16 @@ on:
     branches: [main]
   pull_request:
     branches: [main]
+
+# Required secrets for this workflow:
+#   - DEVNET_SOLANA_DEPLOY_URL: The RPC URL for devnet deployments
+#   - MAINNET_SOLANA_DEPLOY_URL: The RPC URL for mainnet deployments
+#   - DEVNET_DEPLOYER_KEYPAIR: The base58 encoded keypair for devnet deployments
+#   - MAINNET_DEPLOYER_KEYPAIR: The base58 encoded keypair for mainnet deployments
+#   - DEVNET_DEPLOYER_ADDRESS: The public key address for devnet buffer authority
+#   - MAINNET_DEPLOYER_ADDRESS: The public key address for mainnet buffer authority
+#   - IDL_AUTHORITY: The keypair with authority to upload IDL
+#   - PROGRAM_ADDRESS_KEYPAIR: The keypair for initial program deployment (if program doesn't exist)
 
 jobs:
   build:
@@ -116,7 +126,7 @@ jobs:
       - uses: ./.github/actions/build-anchor/
         with:
           testing: false
-          devnet: true
+          devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
       - name: Create local artifacts directory
@@ -180,19 +190,18 @@ jobs:
         id: buffer-deploy
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
         with:
-          devnet: true
-          network: ${{ inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
+          devnet: ${{ github.event.inputs.network == 'devnet' }}
+          network: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
           program: ${{ env.PROGRAM_NAME }}
           program-id: ${{ env.PROGRAM_ID }}
-          keypair: ${{ inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
-          buffer-authority: ${{ inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
-
+          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+          buffer-authority: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
 
       - uses: ./.github/actions/idl-upload/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
         with:
           program-id: ${{ env.PROGRAM_ID }}
-          network: ${{ inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
+          network: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
           keypair: ${{ secrets.IDL_AUTHORITY }}
           idl-buffer: ${{ steps.buffer-deploy.outputs.idl-buffer }}
 

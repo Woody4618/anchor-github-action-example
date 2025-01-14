@@ -191,17 +191,26 @@ jobs:
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
         with:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
-          network: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
+          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           program: ${{ env.PROGRAM_NAME }}
           program-id: ${{ env.PROGRAM_ID }}
           keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
           buffer-authority: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
 
+      - uses: ./.github/actions/program-upgrade/
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
+        with:
+          program-id: ${{ env.PROGRAM_ID }}
+          program: ${{ env.PROGRAM_NAME }}
+          buffer: ${{ steps.buffer-deploy.outputs.buffer }}
+          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
+          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+
       - uses: ./.github/actions/idl-upload/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
         with:
           program-id: ${{ env.PROGRAM_ID }}
-          network: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL  }}
+          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           keypair: ${{ secrets.IDL_AUTHORITY }}
           idl-buffer: ${{ steps.buffer-deploy.outputs.idl-buffer }}
 

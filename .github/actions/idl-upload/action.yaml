@@ -4,10 +4,9 @@ inputs:
   program-id:
     description: "The program id of the program we are uploading"
     required: true
-  network:
+  rpc-url:
     description: "The Solana network"
     required: true
-    default: "devnet"
   keypair:
     description: "The keypair to use for deploys"
     required: true
@@ -33,12 +32,12 @@ runs:
         shell: bash
         command: |
           echo "Checking if IDL exists for program ${{ inputs.program-id }}"
-          if ! anchor idl fetch ${{ inputs.program-id }} --provider.cluster ${{ inputs.network }} > /dev/null 2>&1; then
+          if ! anchor idl fetch ${{ inputs.program-id }} --provider.cluster ${{ inputs.rpc-url }} > /dev/null 2>&1; then
             echo "IDL not found, initializing..."
-            anchor idl init --filepath ./target/idl/${{ env.PROGRAM_NAME }}.json ${{ inputs.program-id }} --provider.cluster ${{ inputs.network }} --provider.wallet ./deploy-keypair.json
+            anchor idl init --filepath ./target/idl/${{ env.PROGRAM_NAME }}.json ${{ inputs.program-id }} --provider.cluster ${{ inputs.rpc-url }} --provider.wallet ./deploy-keypair.json
           else
             echo "IDL found, setting buffer..."
-            anchor idl set-buffer ${{ inputs.program-id }} --buffer ${{ inputs.idl-buffer }} --provider.cluster ${{ inputs.network }} --provider.wallet ./deploy-keypair.json
+            anchor idl set-buffer --buffer ${{ inputs.idl-buffer }} ${{ inputs.program-id }} --provider.cluster ${{ inputs.rpc-url }} --provider.wallet ./deploy-keypair.json
           fi
 
     - run: rm ./deploy-keypair.json

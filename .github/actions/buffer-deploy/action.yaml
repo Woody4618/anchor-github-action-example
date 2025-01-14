@@ -9,10 +9,9 @@ inputs:
     description: "Whether to use devnet feature"
     required: false
     default: "false"
-  network:
+  rpc-url:
     description: "The Solana network"
     required: true
-    default: "devnet"
   program:
     description: "The program to build and upload"
     required: true
@@ -56,9 +55,9 @@ runs:
         timeout_minutes: 30
         max_attempts: 10
         shell: bash
-        command: solana program write-buffer --max-sign-attempts 50 --with-compute-unit-price 100000 --use-rpc --buffer ./keyp -k ./deploy-keypair.json ./target/deploy/$PROGRAM.so -u $NETWORK > ./buffer.out
+        command: solana program write-buffer --max-sign-attempts 50 --with-compute-unit-price 100000 --use-rpc --buffer ./keyp -k ./deploy-keypair.json ./target/deploy/$PROGRAM.so -u $RPC_URL > ./buffer.out
       env:
-        NETWORK: ${{ inputs.network }}
+        RPC_URL: ${{ inputs.rpc-url }}
         PROGRAM: ${{ inputs.program }}
     - name: IDL Buffer Deploy
       uses: nick-invision/retry@v2
@@ -70,9 +69,9 @@ runs:
         shell: bash
         command: |
           # Check if IDL exists first
-          if anchor idl fetch $PROGRAM_ID --provider.cluster $NETWORK > /dev/null 2>&1; then
+          if anchor idl fetch $PROGRAM_ID --provider.cluster $RPC_URL > /dev/null 2>&1; then
             echo "IDL exists, creating buffer..."
-            ~/.cargo/bin/anchor idl write-buffer $PROGRAM_ID --filepath ./target/idl/$PROGRAM.json --provider.cluster $NETWORK --provider.wallet ./deploy-keypair.json > idl-buffer.out
+            ~/.cargo/bin/anchor idl write-buffer $PROGRAM_ID --filepath ./target/idl/$PROGRAM.json --provider.cluster $RPC_URL --provider.wallet ./deploy-keypair.json > idl-buffer.out
             echo "IDL buffer created"
           else
             echo "IDL Account does not exist yet, skipping buffer creation, will call init during upload idl instead"
@@ -81,7 +80,7 @@ runs:
       env:
         PROGRAM_ID: ${{ inputs.program-id }}
         PROGRAM: ${{ inputs.program }}
-        NETWORK: ${{ inputs.network }}
+        RPC_URL: ${{ inputs.rpc-url }}
     - name: Buffer Deploy Store
       shell: bash
       id: buffer-deploy-store
@@ -118,7 +117,7 @@ runs:
         command: |
           if [ -n "$IDL_BUFFER" ]; then
             echo "Setting authority for IDL buffer: $IDL_BUFFER"
-            anchor idl set-authority $IDL_BUFFER --provider.cluster $NETWORK --program-id $PROGRAM_ID --new-authority $AUTHORITY --provider.wallet ./deploy-keypair.json
+            anchor idl set-authority $IDL_BUFFER --provider.cluster $RPC_URL --program-id $PROGRAM_ID --new-authority $AUTHORITY --provider.wallet ./deploy-keypair.json
           else
             echo "No IDL buffer to set authority for, skipping"
           fi
@@ -126,7 +125,7 @@ runs:
       env:
         IDL_BUFFER: ${{ steps.buffer-deploy-store.outputs.IDL_BUFFER }}
         AUTHORITY: ${{ inputs.buffer-authority }}
-        NETWORK: ${{ inputs.network }}
+        RPC_URL: ${{ inputs.rpc-url }}
         PROGRAM_ID: ${{ inputs.program-id }}
     - name: Transfer buffer to authority
       uses: nick-invision/retry@v2
@@ -135,41 +134,11 @@ runs:
         timeout_minutes: 10
         max_attempts: 50
         shell: bash
-        command: solana program set-buffer-authority $BUFFER -k ./deploy-keypair.json --new-buffer-authority $AUTHORITY -u $NETWORK
+        command: solana program set-buffer-authority $BUFFER -k ./deploy-keypair.json --new-buffer-authority $AUTHORITY -u $RPC_URL
       env:
         BUFFER: ${{ steps.buffer-deploy-store.outputs.BUFFER }}
         AUTHORITY: ${{ inputs.buffer-authority }}
-        NETWORK: ${{ inputs.network }}
-
-    - name: Upgrade program with buffer
-      uses: nick-invision/retry@v2
-      if: steps.cache-buffer.outputs.cache-hit != 'true'
-      with:
-        timeout_minutes: 10
-        max_attempts: 50
-        shell: bash
-        command: |
-          # Get current and new program sizes
-          CURRENT_SIZE=$(solana program show $PROGRAM_ID -u $NETWORK | grep "Data Length:" | cut -d ":" -f2 | cut -d " " -f2)
-          NEW_SIZE=$(wc -c < ./target/deploy/$PROGRAM.so)
-          echo "Current program size: $CURRENT_SIZE bytes"
-          echo "New program size: $NEW_SIZE bytes"
-          
-          # Extend program if needed
-          if [ $NEW_SIZE -gt $CURRENT_SIZE ]; then
-            echo "Program needs to be extended"
-            solana program extend $PROGRAM_ID $((NEW_SIZE - CURRENT_SIZE)) -u $NETWORK -k ./deploy-keypair.json 
-            echo "Program extended successfully"
-          fi
-          
-          # Upgrade program
-          solana program upgrade $BUFFER $PROGRAM_ID -k ./deploy-keypair.json -u $NETWORK 
-      env:
-        BUFFER: ${{ steps.buffer-deploy-store.outputs.BUFFER }}
-        AUTHORITY: ${{ inputs.buffer-authority }}
-        NETWORK: ${{ inputs.network }}
-        PROGRAM_ID: ${{ inputs.program-id }}
-        PROGRAM: ${{ inputs.program }}
+        RPC_URL: ${{ inputs.rpc-url }}
 
     - run: rm ./deploy-keypair.json
       shell: bash

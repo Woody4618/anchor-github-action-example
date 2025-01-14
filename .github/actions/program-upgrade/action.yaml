@@ -1,0 +1,61 @@
+name: "Upgrade Program"
+description: "Upgrades a Solana program using a buffer"
+inputs:
+  program-id:
+    description: "Program ID to upgrade"
+    required: true
+  program:
+    description: "Program name"
+    required: true
+  buffer:
+    description: "Buffer address containing the new program"
+    required: true
+  rpc-url:
+    description: "Solana RPC URL"
+    required: true
+  keypair:
+    description: "Keypair with upgrade authority"
+    required: true
+
+runs:
+  using: "composite"
+  steps:
+    - uses: ./.github/actions/setup/
+    - uses: ./.github/actions/setup-solana/
+    
+    - run: echo "$DEPLOY_KEYPAIR" > ./deploy-keypair.json && chmod 600 ./deploy-keypair.json
+      shell: bash
+      env:
+        DEPLOY_KEYPAIR: ${{ inputs.keypair }}
+
+    - name: Upgrade Program
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 10
+        max_attempts: 50
+        shell: bash
+        command: |
+          # Get current and new program sizes
+          CURRENT_SIZE=$(solana program show $PROGRAM_ID -u $RPC_URL | grep "Data Length:" | cut -d ":" -f2 | cut -d " " -f2)
+          NEW_SIZE=$(wc -c < ./target/deploy/$PROGRAM.so)
+          echo "Current program size: $CURRENT_SIZE bytes"
+          echo "New program size: $NEW_SIZE bytes"
+          
+          # Extend program if needed
+          if [ $NEW_SIZE -gt $CURRENT_SIZE ]; then
+            echo "Program needs to be extended"
+            solana program extend $PROGRAM_ID $((NEW_SIZE - CURRENT_SIZE)) -u $RPC_URL -k ./deploy-keypair.json 
+            echo "Program extended successfully"
+          fi
+          
+          # Upgrade program
+          solana program upgrade $BUFFER $PROGRAM_ID -k ./deploy-keypair.json -u $RPC_URL 
+      env:
+        BUFFER: ${{ inputs.buffer }}
+        PROGRAM_ID: ${{ inputs.program-id }}
+        PROGRAM: ${{ inputs.program }}
+        RPC_URL: ${{ inputs.rpc-url }}
+
+    - run: rm ./deploy-keypair.json
+      shell: bash
+      if: always() 

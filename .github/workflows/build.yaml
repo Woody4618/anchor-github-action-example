@@ -178,13 +178,13 @@ jobs:
           echo "SO file: ./artifacts/build/${{ env.PROGRAM_NAME }}-so/target/deploy/${{ env.PROGRAM_NAME }}.so"
           echo "IDL file: ./artifacts/build/${{ env.PROGRAM_NAME }}-idl/target/idl/${{ env.PROGRAM_NAME }}.json"
 
-      # - uses: ./.github/actions/build-verified/
-      #   if: ${{ !env.ACT }}  # Skip on local runs
-      #   id: build-verified
-      #   with:
-      #     devnet: true
-      #     program: ${{ env.PROGRAM_NAME }}
-      #     program-id: ${{ env.PROGRAM_ID }}
+      - uses: ./.github/actions/build-verified/
+        if: ${{ !env.ACT }}  # Skip on local runs
+        id: build-verified
+        with:
+          devnet: ${{ github.event.inputs.network == 'devnet' }}
+          program: ${{ env.PROGRAM_NAME }}
+          program-id: ${{ env.PROGRAM_ID }}
 
       - uses: ./.github/actions/buffer-deploy/
         id: buffer-deploy

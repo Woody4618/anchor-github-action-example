@@ -1,5 +1,5 @@
 name: "Build Verified"
-description: "Builds an Anchor Program using solana-verify"
+description: "Builds a Solana program using solana-verify"
 inputs:
   devnet:
     description: "Whether to use devnet feature"
@@ -46,4 +46,8 @@ runs:
     - name: Build Verified
       shell: bash
       run: |
-        ~/.cargo/bin/solana-verify build --library-name ${{ inputs.program }} -- --features devnet
+        FEATURES=""
+        if [ "${{ inputs.devnet }}" = "true" ]; then
+          FEATURES="--features devnet"
+        fi
+        ~/.cargo/bin/solana-verify build --library-name ${{ inputs.program }} -- $FEATURES

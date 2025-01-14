@@ -1,0 +1,54 @@
+name: "Write IDL Buffer"
+description: "Creates a buffer for the program IDL"
+inputs:
+  program-id:
+    description: "Program ID"
+    required: true
+  program:
+    description: "Program name"
+    required: true
+  rpc-url:
+    description: "Solana RPC URL"
+    required: true
+  keypair:
+    description: "The keypair to use for buffer creation"
+    required: true
+
+outputs:
+  buffer:
+    description: "Created IDL buffer address"
+    value: ${{ steps.write-buffer.outputs.buffer }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: ./.github/actions/setup/
+    - uses: ./.github/actions/setup-anchor/
+
+    - name: Write keypair
+      shell: bash
+      run: echo "$DEPLOY_KEYPAIR" > ./deploy-keypair.json && chmod 600 ./deploy-keypair.json
+      env:
+        DEPLOY_KEYPAIR: ${{ inputs.keypair }}
+
+    - name: Write IDL buffer
+      id: write-buffer
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 10
+        max_attempts: 3
+        command: |
+          anchor idl write-buffer \
+            ${{ inputs.program-id }} \
+            --filepath ./target/idl/${{ inputs.program }}.json \
+            --provider.cluster ${{ inputs.rpc-url }} \
+            --provider.wallet ./deploy-keypair.json \
+            > buffer.out
+          
+          BUFFER=$(cat buffer.out | tail -n1)
+          echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: rm -f ./deploy-keypair.json 

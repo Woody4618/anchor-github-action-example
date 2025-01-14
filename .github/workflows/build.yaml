@@ -36,10 +36,10 @@ on:
         required: false
         type: boolean
         default: true
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  # push:
+  #   branches: [main]
+  # pull_request:
+  #   branches: [main]
 
 # Required secrets for this workflow:
 #   - DEVNET_SOLANA_DEPLOY_URL: The RPC URL for devnet deployments
@@ -191,14 +191,12 @@ jobs:
           program: ${{ env.PROGRAM_NAME }}
           program-id: ${{ env.PROGRAM_ID }}
 
-      - uses: ./.github/actions/buffer-deploy/
-        id: buffer-deploy
+      - uses: ./.github/actions/write-program-buffer/
+        id: program-buffer
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
         with:
-          devnet: ${{ github.event.inputs.network == 'devnet' }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           program: ${{ env.PROGRAM_NAME }}
-          program-id: ${{ env.PROGRAM_ID }}
+          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
           buffer-authority: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
 
@@ -207,10 +205,19 @@ jobs:
         with:
           program-id: ${{ env.PROGRAM_ID }}
           program: ${{ env.PROGRAM_NAME }}
-          buffer: ${{ steps.buffer-deploy.outputs.buffer }}
+          buffer: ${{ steps.program-buffer.outputs.buffer }}
           rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
           program-keypair: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
+
+      - uses: ./.github/actions/write-idl-buffer/
+        id: idl-buffer
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
+        with:
+          program-id: ${{ env.PROGRAM_ID }}
+          program: ${{ env.PROGRAM_NAME }}
+          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
+          keypair: ${{ secrets.IDL_AUTHORITY }}
 
       - uses: ./.github/actions/idl-upload/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
@@ -218,7 +225,7 @@ jobs:
           program-id: ${{ env.PROGRAM_ID }}
           rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           keypair: ${{ secrets.IDL_AUTHORITY }}
-          idl-buffer: ${{ steps.buffer-deploy.outputs.idl-buffer }}
+          idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
 
       - uses: ./.github/actions/verify-build/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'

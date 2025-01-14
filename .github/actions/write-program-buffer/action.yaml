@@ -1,0 +1,57 @@
+name: "Write Program Buffer"
+description: "Creates a buffer for the program binary"
+inputs:
+  program:
+    description: "Program name"
+    required: true
+  rpc-url:
+    description: "Solana RPC URL"
+    required: true
+  keypair:
+    description: "The keypair to use for buffer creation"
+    required: true
+  buffer-authority:
+    description: "The buffer authority address"
+    required: true
+
+outputs:
+  buffer:
+    description: "Created program buffer address"
+    value: ${{ steps.write-buffer.outputs.buffer }}
+
+runs:
+  using: "composite"
+  steps:
+    - uses: ./.github/actions/setup/
+    - uses: ./.github/actions/setup-solana/
+    
+    - name: Write keypair
+      shell: bash
+      run: echo "$DEPLOY_KEYPAIR" > ./deploy-keypair.json && chmod 600 ./deploy-keypair.json
+      env:
+        DEPLOY_KEYPAIR: ${{ inputs.keypair }}
+
+    - name: Write program buffer
+      id: write-buffer
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 10
+        max_attempts: 3
+        command: |
+          solana program write-buffer \
+            ./target/deploy/${{ inputs.program }}.so \
+            --url ${{ inputs.rpc-url }} \
+            --buffer-authority ${{ inputs.buffer-authority }} \
+            --keypair ./deploy-keypair.json \
+            --max-sign-attempts 50 \
+            --with-compute-unit-price 100000 \
+            --use-rpc \
+            > buffer.out
+          
+          BUFFER=$(cat buffer.out | grep "Buffer:" | cut -d " " -f2)
+          echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
+
+    - name: Cleanup
+      if: always()
+      shell: bash
+      run: rm -f ./deploy-keypair.json 

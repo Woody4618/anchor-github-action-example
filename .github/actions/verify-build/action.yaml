@@ -30,6 +30,9 @@ inputs:
   mount-path:
     description: "Path to the program directory"
     required: false
+  network:
+    description: "Target network (mainnet/devnet)"
+    required: true
 
 runs:
   using: "composite"
@@ -78,11 +81,14 @@ runs:
           ARGS="$ARGS --commit-hash ${{ inputs.commit-hash }}"
         fi
         
+        if [ "${{ inputs.network }}" = "mainnet" ]; then
+          ARGS="$ARGS --remote"
+        fi
+        
         solana-verify verify-from-repo \
           --program-id ${{ inputs.program-id }} \
           --url ${{ inputs.rpc-url }} \
           --library-name ${{ inputs.program }} \
-          --remote \
           -k ./deploy-keypair.json \
           $ARGS \
           ${{ inputs.repo-url }}

@@ -210,6 +210,7 @@ jobs:
           buffer: ${{ steps.buffer-deploy.outputs.buffer }}
           rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
           keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+          program-keypair: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
 
       - uses: ./.github/actions/idl-upload/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'

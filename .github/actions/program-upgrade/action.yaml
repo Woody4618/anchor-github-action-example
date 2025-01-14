@@ -16,6 +16,9 @@ inputs:
   keypair:
     description: "Deployer keypair"
     required: true
+  program-keypair:
+    description: "Program address keypair for initial deployment"
+    required: true
 
 runs:
   using: "composite"
@@ -23,11 +26,14 @@ runs:
     - uses: ./.github/actions/setup/
     - uses: ./.github/actions/setup-solana/
     
-    - name: Write keypair
+    - name: Write keypairs
       shell: bash
-      run: echo "$DEPLOY_KEYPAIR" > ./deploy-keypair.json && chmod 600 ./deploy-keypair.json
+      run: |
+        echo "$DEPLOY_KEYPAIR" > ./deploy-keypair.json && chmod 600 ./deploy-keypair.json
+        echo "$PROGRAM_KEYPAIR" > ./program-keypair.json && chmod 600 ./program-keypair.json
       env:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
+        PROGRAM_KEYPAIR: ${{ inputs.program-keypair }}
 
     - name: Check if program exists
       id: check-program
@@ -49,7 +55,7 @@ runs:
           solana program deploy \
             --url ${{ inputs.rpc-url }} \
             --keypair ./deploy-keypair.json \
-            --program-id ./target/deploy/${{ inputs.program }}-keypair.json \
+            --program-id ./program-keypair.json \
             --max-sign-attempts 50 \
             --with-compute-unit-price 100000 \
             --use-rpc \
@@ -87,4 +93,6 @@ runs:
     - name: Cleanup
       if: always()
       shell: bash
-      run: rm -f ./deploy-keypair.json 
+      run: |
+        rm -f ./deploy-keypair.json
+        rm -f ./program-keypair.json 

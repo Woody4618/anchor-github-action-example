@@ -21,7 +21,7 @@ runs:
     - name: Build Program
       shell: bash
       run: |
-        echo "Building program: ${{ inputs.program }}"
+        echo "Building Anchor program: ${{ inputs.program }} to get IDL"
         anchor build -p ${{ inputs.program }}
     - name: Copy artifacts from container
       shell: bash

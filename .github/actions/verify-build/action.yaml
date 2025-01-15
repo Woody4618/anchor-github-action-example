@@ -33,17 +33,19 @@ inputs:
   network:
     description: "Target network (mainnet/devnet)"
     required: true
+  verify-version:
+    description: "Version of solana-verify to use"
+    required: true
 
 runs:
   using: "composite"
   steps:
     - uses: ./.github/actions/setup/
     - uses: ./.github/actions/setup-solana/
+    - uses: ./.github/actions/setup-solana-verify/
+      with:
+        verify-version: ${{ inputs.verify-version }}
     
-    - name: Install solana-verify
-      shell: bash
-      run: cargo install solana-verify --locked || true
-      
     - name: Write keypair
       shell: bash
       run: |

@@ -1,5 +1,9 @@
 name: Build Program
 
+# Constants
+env:
+  SOLANA_VERIFY_VERSION: "0.4.0"  # Version of solana-verify to use
+
 on:
   workflow_dispatch:  # Allow manual triggering
     inputs:
@@ -134,6 +138,14 @@ jobs:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
+      - uses: ./.github/actions/build-verified/
+        id: build-verified
+        with:
+          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
+          devnet: ${{ github.event.inputs.network == 'devnet' }}
+          program: ${{ env.PROGRAM_NAME }}
+          program-id: ${{ env.PROGRAM_ID }}
+
       - name: Create local artifacts directory
         run: |
           # Create directories
@@ -183,14 +195,6 @@ jobs:
           echo "SO file: ./artifacts/build/${{ env.PROGRAM_NAME }}-so/target/deploy/${{ env.PROGRAM_NAME }}.so"
           echo "IDL file: ./artifacts/build/${{ env.PROGRAM_NAME }}-idl/target/idl/${{ env.PROGRAM_NAME }}.json"
 
-      - uses: ./.github/actions/build-verified/
-        if: ${{ !env.ACT }}  # Skip on local runs
-        id: build-verified
-        with:
-          devnet: ${{ github.event.inputs.network == 'devnet' }}
-          program: ${{ env.PROGRAM_NAME }}
-          program-id: ${{ env.PROGRAM_ID }}
-
       - uses: ./.github/actions/write-program-buffer/
         id: program-buffer
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
@@ -232,6 +236,7 @@ jobs:
       - uses: ./.github/actions/verify-build/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'
         with:
+          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
           program-id: ${{ env.PROGRAM_ID }}
           program: ${{ env.PROGRAM_NAME }}
           network: ${{ github.event.inputs.network }}

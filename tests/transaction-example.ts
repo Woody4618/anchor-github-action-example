@@ -1,121 +1,123 @@
-import { getProvider, Program } from "@coral-xyz/anchor";
-import { getKeypairFromFile } from "@solana-developers/helpers";
-import { TransactionExample } from "../target/types/transaction_example";
-import {
-  sendTransactionWithRetry,
-  prepareTransactionWithCompute,
-  getIdlParsedAccountData,
-  parseAnchorTransactionEvents,
-  decodeAnchorTransaction,
-} from "/Users/jonasmac2/Documents/GitHub/helpers/src/lib/transaction";
-import { Connection, PublicKey } from "@solana/web3.js";
-import { strict as assert } from "assert";
-const anchor = require("@coral-xyz/anchor");
+// Comment out until new helpers package release 
 
-describe("send-transaction", () => {
-  anchor.setProvider(anchor.AnchorProvider.env());
+// import { Program } from "@coral-xyz/anchor";
+// import { getKeypairFromFile } from "@solana-developers/helpers";
+// import { TransactionExample } from "../target/types/transaction_example";
+// import {
+//   sendTransactionWithRetry,
+//   prepareTransactionWithCompute,
+//   getIdlParsedAccountData,
+//   parseAnchorTransactionEvents,
+//   decodeAnchorTransaction,
+// } from "/Users/jonasmac2/Documents/GitHub/helpers/src/lib/transaction";
+// import { Connection, PublicKey } from "@solana/web3.js";
+// import { strict as assert } from "assert";
+// const anchor = require("@coral-xyz/anchor");
 
-  const program = anchor.workspace
-    .TransactionExample as Program<TransactionExample>;
+// describe("send-transaction", () => {
+//   anchor.setProvider(anchor.AnchorProvider.env());
 
-  it("Is initialized!", async () => {
-    const keyPair = await getKeypairFromFile();
+//   const program = anchor.workspace
+//     .TransactionExample as Program<TransactionExample>;
 
-    const tx = await program.methods.initialize().transaction();
-    const connection = new Connection(
-      anchor.getProvider().connection.rpcEndpoint,
-      "confirmed"
-    );
+//   it("Is initialized!", async () => {
+//     const keyPair = await getKeypairFromFile();
 
-    const blockhash = await connection.getLatestBlockhash();
-    tx.recentBlockhash = blockhash.blockhash;
-    tx.feePayer = anchor.getProvider().publicKey;
+//     const tx = await program.methods.initialize().transaction();
+//     const connection = new Connection(
+//       anchor.getProvider().connection.rpcEndpoint,
+//       "confirmed"
+//     );
 
-    // This could be really nice if RPC providers would all have the same API...
-    // Please fall back to the fee api of your favourite RPC provider to get a good value.
-    const priorityFee = 1000;
+//     const blockhash = await connection.getLatestBlockhash();
+//     tx.recentBlockhash = blockhash.blockhash;
+//     tx.feePayer = anchor.getProvider().publicKey;
 
-    await prepareTransactionWithCompute(
-      connection,
-      tx,
-      keyPair.publicKey,
-      priorityFee
-    );
+//     // This could be really nice if RPC providers would all have the same API...
+//     // Please fall back to the fee api of your favourite RPC provider to get a good value.
+//     const priorityFee = 1000;
 
-    tx.sign(keyPair);
+//     await prepareTransactionWithCompute(
+//       connection,
+//       tx,
+//       keyPair.publicKey,
+//       priorityFee
+//     );
 
-    // This is how to subscribe to events in anchor
-    const subscriptionId = await program.addEventListener(
-      "counterEvent",
-      (event) => {
-        console.log("CounterEvent", event);
-      }
-    );
+//     tx.sign(keyPair);
 
-    var signature = await sendTransactionWithRetry(connection, tx, []);
-    console.log("Your transaction signature", signature);
+//     // This is how to subscribe to events in anchor
+//     const subscriptionId = await program.addEventListener(
+//       "counterEvent",
+//       (event) => {
+//         console.log("CounterEvent", event);
+//       }
+//     );
 
-    const transaction = await connection.getTransaction(signature, {
-      commitment: "confirmed",
-    });
-    console.log("Transaction", transaction);
+//     var signature = await sendTransactionWithRetry(connection, tx, []);
+//     console.log("Your transaction signature", signature);
 
-    // --- Decode Transaction ---
-    const decodedTx = await decodeAnchorTransaction(
-      "./target/idl/transaction_example.json",
-      signature,
-      connection
-    );
+//     const transaction = await connection.getTransaction(signature, {
+//       commitment: "confirmed",
+//     });
+//     console.log("Transaction", transaction);
 
-    console.log(decodedTx.toString());
+//     // --- Decode Transaction ---
+//     const decodedTx = await decodeAnchorTransaction(
+//       "./target/idl/transaction_example.json",
+//       signature,
+//       connection
+//     );
 
-    // --- Parse Events ---
-    const events = await parseAnchorTransactionEvents(
-      "./target/idl/transaction_example.json",
-      signature,
-      connection
-    );
-    console.log("Events:", events);
+//     console.log(decodedTx.toString());
 
-    // --- Parse Account Data ---
+//     // --- Parse Events ---
+//     const events = await parseAnchorTransactionEvents(
+//       "./target/idl/transaction_example.json",
+//       signature,
+//       connection
+//     );
+//     console.log("Events:", events);
 
-    const counterPdaPubkey = PublicKey.findProgramAddressSync(
-      [Buffer.from("counter")],
-      program.programId
-    )[0];
+//     // --- Parse Account Data ---
 
-    const decodedCounterData = await getIdlParsedAccountData(
-      "./target/idl/transaction_example.json",
-      "counter",
-      counterPdaPubkey,
-      connection
-    );
-    console.log("Decoded Data:", decodedCounterData);
+//     const counterPdaPubkey = PublicKey.findProgramAddressSync(
+//       [Buffer.from("counter")],
+//       program.programId
+//     )[0];
 
-    await program.removeEventListener(subscriptionId);
-  });
+//     const decodedCounterData = await getIdlParsedAccountData(
+//       "./target/idl/transaction_example.json",
+//       "counter",
+//       counterPdaPubkey,
+//       connection
+//     );
+//     console.log("Decoded Data:", decodedCounterData);
 
-  it("Get and parse counter!", async () => {
-    const connection = new Connection(
-      anchor.getProvider().connection.rpcEndpoint,
-      "confirmed"
-    );
+//     await program.removeEventListener(subscriptionId);
+//   });
 
-    const counterPdaPubkey = PublicKey.findProgramAddressSync(
-      [Buffer.from("counter")],
-      program.programId
-    )[0];
+//   it("Get and parse counter!", async () => {
+//     const connection = new Connection(
+//       anchor.getProvider().connection.rpcEndpoint,
+//       "confirmed"
+//     );
 
-    const decodedData = await getIdlParsedAccountData(
-      "./target/idl/transaction_example.json",
-      "counter",
-      counterPdaPubkey,
-      connection
-    );
+//     const counterPdaPubkey = PublicKey.findProgramAddressSync(
+//       [Buffer.from("counter")],
+//       program.programId
+//     )[0];
 
-    assert(
-      decodedData.count == 2,
-      `Expected count to be 0 but got ${decodedData.count}`
-    );
-  });
-});
+//     const decodedData = await getIdlParsedAccountData(
+//       "./target/idl/transaction_example.json",
+//       "counter",
+//       counterPdaPubkey,
+//       connection
+//     );
+
+//     assert(
+//       decodedData.count == 2,
+//       `Expected count to be 0 but got ${decodedData.count}`
+//     );
+//   });
+// });

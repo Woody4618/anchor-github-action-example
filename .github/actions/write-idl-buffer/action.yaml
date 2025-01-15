@@ -13,6 +13,9 @@ inputs:
   keypair:
     description: "The keypair to use for buffer creation"
     required: true
+  idl-authority:
+    description: "The address of the idl buffer authority"
+    required: true
 
 outputs:
   buffer:
@@ -31,21 +34,41 @@ runs:
       env:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
 
+    - name: Check if IDL exists
+      id: check-idl
+      shell: bash
+      run: |
+        if anchor idl fetch ${{ inputs.program-id }} --provider.cluster ${{ inputs.rpc-url }} > /dev/null 2>&1; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+        fi
+
     - name: Write IDL buffer
       id: write-buffer
+      if: steps.check-idl.outputs.exists == 'true'
       uses: nick-invision/retry@v2
       with:
         timeout_minutes: 10
         max_attempts: 3
+        shell: bash
         command: |
-          anchor idl write-buffer \
-            ${{ inputs.program-id }} \
+          # Write buffer
+          anchor idl write-buffer ${{ inputs.program-id }} \
             --filepath ./target/idl/${{ inputs.program }}.json \
             --provider.cluster ${{ inputs.rpc-url }} \
-            --provider.wallet ./deploy-keypair.json \
-            > buffer.out
+            --provider.wallet ./deploy-keypair.json > buffer.out
           
-          BUFFER=$(cat buffer.out | tail -n1)
+          # Extract buffer address
+          BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
+          echo "Found buffer: $BUFFER"
+          
+          # Set buffer authority
+          anchor idl set-buffer-authority $BUFFER \
+            --new-authority ${{ inputs.idl-authority }} \
+            --provider.cluster ${{ inputs.rpc-url }} \
+            --provider.wallet ./deploy-keypair.json
+          
           echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
 
     - name: Cleanup

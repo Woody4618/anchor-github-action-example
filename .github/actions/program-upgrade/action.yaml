@@ -39,7 +39,7 @@ runs:
       id: check-program
       shell: bash
       run: |
-        if solana program show ${{ inputs.program-id }} --url ${{ inputs.rpc-url }}; then
+        if solana program show ${{ inputs.program-id }} --url ${{ inputs.rpc-url }} 2>&1 | grep -q "Data Length:"; then
           echo "exists=true" >> $GITHUB_OUTPUT
         else
           echo "exists=false" >> $GITHUB_OUTPUT
@@ -68,21 +68,27 @@ runs:
         timeout_minutes: 10
         max_attempts: 3
         command: |
+          echo "Debug: Buffer value is '${{ inputs.buffer }}'"
+          if [ -z "${{ inputs.buffer }}" ]; then
+            echo "Error: No buffer provided"
+            exit 1
+          fi
+          
           # Get current and new program sizes
-          CURRENT_SIZE=$(solana program show $PROGRAM_ID -u $RPC_URL | grep "Data Length:" | cut -d ":" -f2 | cut -d " " -f2)
-          NEW_SIZE=$(wc -c < ./target/deploy/$PROGRAM.so)
+          CURRENT_SIZE=$(solana program show "${{ inputs.program-id }}" -u "${{ inputs.rpc-url }}" | grep "Data Length:" | cut -d ":" -f2 | cut -d " " -f2)
+          NEW_SIZE=$(wc -c < "./target/deploy/${{ inputs.program }}.so")
           echo "Current program size: $CURRENT_SIZE bytes"
           echo "New program size: $NEW_SIZE bytes"
           
           # Extend program if needed
           if [ $NEW_SIZE -gt $CURRENT_SIZE ]; then
             echo "Program needs to be extended"
-            solana program extend $PROGRAM_ID $((NEW_SIZE - CURRENT_SIZE)) -u $RPC_URL -k ./deploy-keypair.json 
+            solana program extend "${{ inputs.program-id }}" $((NEW_SIZE - CURRENT_SIZE)) -u "${{ inputs.rpc-url }}" -k ./deploy-keypair.json 
             echo "Program extended successfully"
           fi
           
           # Upgrade program
-          solana program upgrade $BUFFER $PROGRAM_ID -k ./deploy-keypair.json -u $RPC_URL 
+          solana program upgrade "${{ inputs.buffer }}" "${{ inputs.program-id }}" -k ./deploy-keypair.json -u "${{ inputs.rpc-url }}"
 
       env:
         BUFFER: ${{ inputs.buffer }}

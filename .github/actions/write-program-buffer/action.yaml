@@ -1,6 +1,9 @@
 name: "Write Program Buffer"
 description: "Creates a buffer for the program binary"
 inputs:
+  program-id:
+    description: "Program ID to check"
+    required: true
   program:
     description: "Program name"
     required: true
@@ -10,8 +13,8 @@ inputs:
   keypair:
     description: "The keypair to use for buffer creation"
     required: true
-  buffer-authority:
-    description: "The buffer authority address"
+  buffer-authority-keypair:
+    description: "The buffer authority keypair. Needed for example for squads"
     required: true
 
 outputs:
@@ -31,27 +34,63 @@ runs:
       env:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
 
+    - name: Write new authority keypair
+      shell: bash
+      run: echo "$AUTHORITY_KEYPAIR" > ./authority-keypair.json && chmod 600 ./authority-keypair.json
+      env:
+        AUTHORITY_KEYPAIR: ${{ inputs.buffer-authority-keypair }}
+
+    - name: Check if program exists
+      id: check-program
+      shell: bash
+      run: |
+        if solana program show ${{ inputs.program-id }} --url ${{ inputs.rpc-url }} 2>&1 | grep -q "Data Length:"; then
+          echo "exists=true" >> $GITHUB_OUTPUT
+          echo "Program exists, will create buffer"
+        else
+          echo "exists=false" >> $GITHUB_OUTPUT
+          echo "Program does not exist, skipping buffer creation"
+        fi
+
     - name: Write program buffer
       id: write-buffer
+      if: steps.check-program.outputs.exists == 'true'
       uses: nick-invision/retry@v2
       with:
         timeout_minutes: 10
         max_attempts: 3
+        shell: bash
         command: |
-          solana program write-buffer \
+          echo "Creating program buffer..."
+          OUTPUT=$(solana program write-buffer \
             ./target/deploy/${{ inputs.program }}.so \
             --url ${{ inputs.rpc-url }} \
-            --buffer-authority ${{ inputs.buffer-authority }} \
+            --buffer-authority ./authority-keypair.json \
             --keypair ./deploy-keypair.json \
             --max-sign-attempts 50 \
             --with-compute-unit-price 100000 \
             --use-rpc \
-            > buffer.out
+            2>&1)
+          echo "$OUTPUT"
           
-          BUFFER=$(cat buffer.out | grep "Buffer:" | cut -d " " -f2)
+          if ! echo "$OUTPUT" | grep -q "Buffer:"; then
+            echo "Error: Buffer creation failed"
+            echo "$OUTPUT"
+            exit 1
+          fi
+          
+          BUFFER=$(echo "$OUTPUT" | grep "Buffer:" | cut -d " " -f2)
+          if [ -z "$BUFFER" ]; then
+            echo "Error: Could not extract buffer address"
+            exit 1
+          fi
+          
+          echo "Found buffer: $BUFFER"
           echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
 
     - name: Cleanup
       if: always()
       shell: bash
-      run: rm -f ./deploy-keypair.json 
+      run: |
+        rm -f ./deploy-keypair.json
+        rm -f ./authority-keypair.json 

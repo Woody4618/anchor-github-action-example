@@ -1,6 +1,14 @@
 name: Test Program
 
 on:
+  push:
+    branches: ["*"]
+    paths:
+      - "programs/**"
+      - "tests/**"
+      - "Anchor.toml"
+      - "Cargo.toml"
+      - "Cargo.lock"
   workflow_dispatch:
     inputs:
       program:

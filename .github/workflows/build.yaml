@@ -2,41 +2,41 @@ name: Build Program
 
 # Constants
 env:
-  SOLANA_VERIFY_VERSION: "0.4.0"  # Version of solana-verify to use
+  SOLANA_VERIFY_VERSION: "0.4.0" # Version of solana-verify to use
 
 on:
-  workflow_dispatch:  # Allow manual triggering
+  workflow_dispatch: # Allow manual triggering
     inputs:
       program:
-        description: 'Program to build'
+        description: "Program to build"
         required: true
-        default: 'transaction_example'
+        default: "transaction_example"
       solana_version:
-        description: 'Override Solana version (leave empty to use version from Cargo.lock)'
+        description: "Override Solana version (leave empty to use version from Cargo.lock)"
         required: false
       anchor_version:
-        description: 'Override Anchor version (leave empty to use version from Cargo.lock)'
+        description: "Override Anchor version (leave empty to use version from Cargo.lock)"
         required: false
       network:
-        description: 'Target network for deployment (requires DEVNET_SOLANA_DEPLOY_URL or MAINNET_SOLANA_DEPLOY_URL secret)'
+        description: "Target network for deployment (requires DEVNET_SOLANA_DEPLOY_URL or MAINNET_SOLANA_DEPLOY_URL secret)"
         required: false
-        default: 'devnet'
+        default: "devnet"
         type: choice
         options:
           - devnet
           - mainnet
       deploy:
-        description: 'Deploy program (requires DEVNET_DEPLOYER_KEYPAIR/MAINNET_DEPLOYER_KEYPAIR and DEVNET_DEPLOYER_ADDRESS/MAINNET_DEPLOYER_ADDRESS secrets)'
+        description: "Deploy program (requires DEVNET_DEPLOYER_KEYPAIR/MAINNET_DEPLOYER_KEYPAIR and DEVNET_DEPLOYER_ADDRESS/MAINNET_DEPLOYER_ADDRESS secrets)"
         required: false
         type: boolean
         default: false
       upload_idl:
-        description: 'Upload IDL (requires IDL_AUTHORITY secret)'
+        description: "Upload IDL (requires IDL_AUTHORITY secret)"
         required: false
         type: boolean
         default: true
       verify:
-        description: 'Verify build against current repository and commit'
+        description: "Verify build against current repository and commit"
         required: false
         type: boolean
         default: true
@@ -85,7 +85,7 @@ jobs:
             echo "Detected Anchor version: ${ANCHOR_VERSION}"
           fi
           echo "ANCHOR_VERSION=${ANCHOR_VERSION}" >> $GITHUB_ENV
-          
+
           # Debug environment variables
           echo "=== Environment Variables Debug ==="
           echo "Content of GITHUB_ENV file:"
@@ -138,6 +138,10 @@ jobs:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
+      - uses: ./.github/actions/run-tests/
+        with:
+          program: ${{ env.PROGRAM_NAME }}
+
       - uses: ./.github/actions/build-verified/
         id: build-verified
         with:
@@ -151,30 +155,30 @@ jobs:
           # Create directories
           mkdir -p build-artifacts/so
           mkdir -p build-artifacts/idl
-          
+
           # Check if source files exist
           echo "Checking source files:"
           ls -la ./target/deploy/
           ls -la ./target/idl/
-          
+
           # Copy with verbose flag
           cp -v ./target/deploy/${{ env.PROGRAM_NAME }}.so build-artifacts/so/
           cp -v ./target/idl/${{ env.PROGRAM_NAME }}.json build-artifacts/idl/
-          
+
           # Check copied files
           echo "Checking copied files:"
           ls -la build-artifacts/so/
           ls -la build-artifacts/idl/
-          
+
           # Set permissions
           chmod -R 777 build-artifacts/
-          
+
           echo "Artifacts copied to project directory at:"
           echo "SO file: ./build-artifacts/so/${{ env.PROGRAM_NAME }}.so"
           echo "IDL file: ./build-artifacts/idl/${{ env.PROGRAM_NAME }}.json"
 
       - name: Store so files
-        if: ${{ !env.ACT }}  # Only run on GitHub Actions, skip for local act runs
+        if: ${{ !env.ACT }} # Only run on GitHub Actions, skip for local act runs
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PROGRAM_NAME }}-so
@@ -182,7 +186,7 @@ jobs:
             ./target/deploy/${{ env.PROGRAM_NAME }}.so
 
       - name: Store idl files
-        if: ${{ !env.ACT }}  # Only run on GitHub Actions, skip for local act runs
+        if: ${{ !env.ACT }} # Only run on GitHub Actions, skip for local act runs
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PROGRAM_NAME }}-idl
@@ -244,4 +248,3 @@ jobs:
           keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
           repo-url: ${{ github.server_url }}/${{ github.repository }}
           commit-hash: ${{ github.sha }}
-

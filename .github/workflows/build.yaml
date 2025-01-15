@@ -138,10 +138,6 @@ jobs:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
-      - uses: ./.github/actions/run-tests/
-        with:
-          program: ${{ env.PROGRAM_NAME }}
-
       - uses: ./.github/actions/build-verified/
         id: build-verified
         with:

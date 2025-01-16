@@ -58,20 +58,21 @@ runs:
             --filepath ./target/idl/${{ inputs.program }}.json \
             --provider.cluster ${{ inputs.rpc-url }} \
             --provider.wallet ./deploy-keypair.json > buffer.out
-          
+
           # Extract buffer address
           BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
           echo "Found buffer: $BUFFER"
-          
+
           # Set buffer authority
-          anchor idl set-buffer-authority $BUFFER \
+          anchor idl set-authority $BUFFER \
+            --program-id ${{ inputs.program-id }} \
             --new-authority ${{ inputs.idl-authority }} \
             --provider.cluster ${{ inputs.rpc-url }} \
             --provider.wallet ./deploy-keypair.json
-          
+
           echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
 
     - name: Cleanup
       if: always()
       shell: bash
-      run: rm -f ./deploy-keypair.json 
+      run: rm -f ./deploy-keypair.json

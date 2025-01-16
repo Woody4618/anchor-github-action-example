@@ -11,6 +11,11 @@ on:
         description: "Program to build"
         required: true
         default: "transaction_example"
+      use-squads:
+        description: "Use Squads for program deployment"
+        required: false
+        type: boolean
+        default: false
       solana_version:
         description: "Override Solana version (leave empty to use version from Cargo.lock)"
         required: false
@@ -61,6 +66,26 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v3
+      - name: Set deployment variables
+        run: |
+          # Network specific variables
+          IS_MAINNET="${{ github.event.inputs.network == 'mainnet' }}"
+
+          # Set URLs and Keys based on network
+          if [ "$IS_MAINNET" = "true" ]; then
+            echo "DEPLOY_URL=${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}" >> $GITHUB_ENV
+            echo "DEPLOYER_KEYPAIR=${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" >> $GITHUB_ENV
+            echo "DEPLOYER_ADDRESS=${{ secrets.MAINNET_DEPLOYER_ADDRESS }}" >> $GITHUB_ENV
+            echo "MULTISIG=${{ secrets.MAINNET_MULTISIG }}" >> $GITHUB_ENV
+            echo "MULTISIG_VAULT=${{ secrets.MAINNET_MULTISIG_VAULT }}" >> $GITHUB_ENV
+          else
+            echo "DEPLOY_URL=${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}" >> $GITHUB_ENV
+            echo "DEPLOYER_KEYPAIR=${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" >> $GITHUB_ENV
+            echo "DEPLOYER_ADDRESS=${{ secrets.DEVNET_DEPLOYER_ADDRESS }}" >> $GITHUB_ENV
+            echo "MULTISIG=${{ secrets.DEVNET_MULTISIG }}" >> $GITHUB_ENV
+            echo "MULTISIG_VAULT=${{ secrets.DEVNET_MULTISIG_VAULT }}" >> $GITHUB_ENV
+          fi
+
       - uses: ./.github/actions/extract-versions/
         id: versions
 
@@ -172,19 +197,9 @@ jobs:
         with:
           program-id: ${{ env.PROGRAM_ID }}
           program: ${{ env.PROGRAM_NAME }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
-          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
-          buffer-authority-keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
-
-      - uses: ./.github/actions/program-upgrade/
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true'
-        with:
-          program-id: ${{ env.PROGRAM_ID }}
-          program: ${{ env.PROGRAM_NAME }}
-          buffer: ${{ steps.program-buffer.outputs.buffer }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
-          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
-          program-keypair: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
+          buffer-authority-address: ${{ github.event.inputs.use-squads == 'true' && env.MULTISIG_VAULT || env.DEPLOYER_ADDRESS  }}
 
       - uses: ./.github/actions/write-idl-buffer/
         id: idl-buffer
@@ -192,17 +207,41 @@ jobs:
         with:
           program-id: ${{ env.PROGRAM_ID }}
           program: ${{ env.PROGRAM_NAME }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
-          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
-          idl-authority: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_ADDRESS || secrets.DEVNET_DEPLOYER_ADDRESS }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
+          idl-authority: ${{ github.event.inputs.use-squads == 'true' && env.MULTISIG_VAULT || env.DEPLOYER_ADDRESS  }}
 
-      - uses: ./.github/actions/idl-upload/
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true'
+      - uses: ./.github/actions/program-upgrade/
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.deploy == 'true' && github.event.inputs.use-squads == 'false'
         with:
           program-id: ${{ env.PROGRAM_ID }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
-          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+          program: ${{ env.PROGRAM_NAME }}
+          buffer: ${{ steps.program-buffer.outputs.buffer }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
+          program-keypair: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
+
+      - uses: ./.github/actions/idl-upload/
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.upload_idl == 'true' && github.event.inputs.use-squads == 'false'
+        with:
+          program-id: ${{ env.PROGRAM_ID }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
           idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
+
+      - name: Deploy Program (Squads)
+        if: github.event.inputs.deploy == 'true' && github.event.inputs.use-squads == 'true'
+        uses: helium/squads-program-upgrade@v0.3.3
+        with:
+          network-url: ${{ env.DEPLOY_URL }}
+          program-multisig: ${{ env.MULTISIG }}
+          program-id: ${{ env.PROGRAM_ID }}
+          buffer: ${{ steps.program-buffer.outputs.buffer }}
+          idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
+          spill-address: ${{ env.DEPLOYER_ADDRESS }}
+          authority: ${{ env.MULTISIG_VAULT }}
+          name: "Deploy ${{ env.PROGRAM_NAME }}"
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
 
       - uses: ./.github/actions/verify-build/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'
@@ -211,7 +250,7 @@ jobs:
           program-id: ${{ env.PROGRAM_ID }}
           program: ${{ env.PROGRAM_NAME }}
           network: ${{ github.event.inputs.network }}
-          rpc-url: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_SOLANA_DEPLOY_URL || secrets.DEVNET_SOLANA_DEPLOY_URL }}
-          keypair: ${{ github.event.inputs.network == 'mainnet' && secrets.MAINNET_DEPLOYER_KEYPAIR || secrets.DEVNET_DEPLOYER_KEYPAIR }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
           repo-url: ${{ github.server_url }}/${{ github.repository }}
           commit-hash: ${{ github.sha }}

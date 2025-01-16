@@ -11,8 +11,6 @@ describe("send-transaction", () => {
     .TransactionExample as Program<TransactionExample>;
 
   it("Is initialized!", async () => {
-    const keyPair = await getKeypairFromFile();
-
     const tx = await program.methods.initialize().rpc();
 
     console.log("Transaction", tx);

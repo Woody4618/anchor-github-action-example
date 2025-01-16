@@ -64,9 +64,21 @@ runs:
 
     - name: Cache Cargo dependencies
       uses: Swatinem/rust-cache@v2
+      with:
+        cache-directories: |
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+          test-ledger/
+        shared-key: "anchor-test-${{ env.ANCHOR_VERSION }}-${{ env.SOLANA_VERSION }}"
 
     - name: Run Anchor Tests
       shell: bash
+      env:
+        CARGO_INCREMENTAL: 1
+        CARGO_NET_RETRY: 10
+        RUST_BACKTRACE: 1
       run: |
         echo "Running tests for program: ${{ inputs.program }}"
         anchor test

@@ -27,7 +27,7 @@ pub mod transaction_example {
 pub struct Initialize<'info> {
     #[account(mut)]
     pub signer: Signer<'info>,
-    #[account(init, 
+    #[account(init_if_needed, 
         payer = signer,
         space = 8 + 8,
         seeds = [b"counter"],

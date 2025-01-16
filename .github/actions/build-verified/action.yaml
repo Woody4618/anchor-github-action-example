@@ -28,6 +28,12 @@ runs:
       with:
         verify-version: ${{ inputs.verify-version }}
 
+    # Add Docker socket mounting
+    - name: Setup Docker
+      shell: bash
+      run: |
+        sudo chmod 666 /var/run/docker.sock
+
     - name: Build Verified
       shell: bash
       run: |
@@ -35,4 +41,5 @@ runs:
         if [ "${{ inputs.devnet }}" = "true" ]; then
           FEATURES="--features devnet"
         fi
+        # Run solana-verify directly without Docker
         ~/.cargo/bin/solana-verify build --library-name ${{ inputs.program }} -- $FEATURES

@@ -134,13 +134,13 @@ jobs:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
-      # - uses: ./.github/actions/build-verified/
-      #   id: build-verified
-      #   with:
-      #     verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
-      #     devnet: ${{ github.event.inputs.network == 'devnet' }}
-      #     program: ${{ env.PROGRAM_NAME }}
-      #     program-id: ${{ env.PROGRAM_ID }}
+      - uses: ./.github/actions/build-verified/
+        id: build-verified
+        with:
+          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
+          devnet: ${{ github.event.inputs.network == 'devnet' }}
+          program: ${{ env.PROGRAM_NAME }}
+          program-id: ${{ env.PROGRAM_ID }}
 
       - name: Create local artifacts directory
         run: |
@@ -229,6 +229,20 @@ jobs:
           keypair: ${{ env.DEPLOYER_KEYPAIR }}
           idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
 
+      - uses: ./.github/actions/verify-build/
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'
+        with:
+          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
+          program-id: ${{ env.PROGRAM_ID }}
+          program: ${{ env.PROGRAM_NAME }}
+          network: ${{ github.event.inputs.network }}
+          rpc-url: ${{ env.DEPLOY_URL }}
+          keypair: ${{ env.DEPLOYER_KEYPAIR }}
+          repo-url: ${{ github.server_url }}/${{ github.repository }}
+          commit-hash: ${{ github.sha }}
+          use-squads: ${{ github.event.inputs.use-squads }}
+          vault-address: ${{ env.MULTISIG_VAULT }}
+
       - name: Deploy Program (Squads)
         if: github.event.inputs.deploy == 'true' && github.event.inputs.use-squads == 'true'
         run: |
@@ -244,15 +258,4 @@ jobs:
             --multisig ${{ env.MULTISIG }} \
             --keypair <(echo '${{ env.DEPLOYER_KEYPAIR }}') \
             --name "Deploy ${{ env.PROGRAM_NAME }}"
-
-      - uses: ./.github/actions/verify-build/
-        if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'
-        with:
-          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
-          program-id: ${{ env.PROGRAM_ID }}
-          program: ${{ env.PROGRAM_NAME }}
-          network: ${{ github.event.inputs.network }}
-          rpc-url: ${{ env.DEPLOY_URL }}
-          keypair: ${{ env.DEPLOYER_KEYPAIR }}
-          repo-url: ${{ github.server_url }}/${{ github.repository }}
-          commit-hash: ${{ github.sha }}
+            --pda-tx '${{ steps.verify-build.outputs.pda_tx }}'

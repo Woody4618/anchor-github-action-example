@@ -36,6 +36,13 @@ inputs:
   verify-version:
     description: "Version of solana-verify to use"
     required: true
+  use-squads:
+    description: "Whether to use Squads for deployment"
+    required: false
+    default: "false"
+  vault-address:
+    description: "The Squads vault address (required if use-squads is true)"
+    required: false
 
 runs:
   using: "composite"
@@ -64,6 +71,7 @@ runs:
 
     - name: Verify Build
       shell: bash
+      if: inputs.use-squads == 'false'
       run: |
         ARGS=""
 
@@ -96,18 +104,36 @@ runs:
           ${{ inputs.repo-url }}
 
     - name: Export PDA Transaction
+      id: export-pda
+      if: inputs.use-squads == 'true'
       shell: bash
       run: |
         echo "=== Exporting PDA Transaction ==="
-        solana-verify export-pda-tx \
+
+        # Get the last line which should be the base64 transaction
+        TX=$(solana-verify export-pda-tx \
           ${{ inputs.repo-url }} \
           --program-id ${{ inputs.program-id }} \
-          --uploader ${{ inputs.keypair }} \
+          --uploader ${{ inputs.vault-address }} \
           --commit-hash ${{ inputs.commit-hash }} \
           --url ${{ inputs.rpc-url }} \
-          --encoding base64 
+          --encoding base64 | tail -n 1)
+          
+        # Verify we got a base64 string
+        if [[ ! "$TX" =~ ^[A-Za-z0-9+/=]*$ ]]; then
+          echo "Error: Invalid base64 transaction"
+          echo "Got: $TX"
+          exit 1
+        fi
+
+        echo "tx=$TX" >> $GITHUB_OUTPUT
 
     - name: Cleanup keypair
       shell: bash
       if: always()
       run: rm -f ./deploy-keypair.json
+
+outputs:
+  pda_tx:
+    description: "PDA verification transaction (only set if use-squads is true)"
+    value: ${{ steps.export-pda.outputs.tx }}

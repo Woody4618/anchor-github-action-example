@@ -72,18 +72,21 @@ runs:
               echo "Current Authority: $(solana address -k ./deploy-keypair.json)"
               echo "New Authority: ${{ inputs.idl-authority }}"
 
+              # Try to set buffer authority, but continue if it fails
               anchor idl set-authority $BUFFER \
                 --program-id ${{ inputs.program-id }} \
                 --new-authority ${{ inputs.idl-authority }} \
                 --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json && break
+                --provider.wallet ./deploy-keypair.json || echo "Failed to set buffer authority (might already be set)"
 
-              # Set program idl authority
+              # Try to set program IDL authority, but continue if it fails  
               anchor idl set-authority \
                 --program-id ${{ inputs.program-id }} \
                 --new-authority ${{ inputs.idl-authority }} \
                 --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json && break
+                --provider.wallet ./deploy-keypair.json || echo "Failed to set program IDL authority (might already be set)"
+
+              break
             fi
           done
 

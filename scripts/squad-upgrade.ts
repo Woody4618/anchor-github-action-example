@@ -127,6 +127,11 @@ async function main() {
       type: "string",
       description: "Path to keypair file",
       required: true,
+    })
+    .option("pda-tx", {
+      type: "string",
+      description: "The base64 encoded verify pda transaction",
+      required: false,
     }).argv;
 
   const connection = new Connection(argv.rpc);
@@ -152,6 +157,7 @@ async function main() {
   console.log("IDL Buffer:", idlBuffer.toString());
 
   // Create authority transfer instructions
+  // NOTE: We cant use this because setting authority and upgrading program in the same transaction fails
   const programBufferAuthorityIx = await createSetBufferAuthorityInstruction(
     programBuffer,
     keypair.publicKey,
@@ -172,18 +178,30 @@ async function main() {
     vaultPda
   );
 
-//   const verificationIxs = await parseVerificationTransaction(
-//     "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAQGIiNQmHKbDYpSrbduAJeHBzlyqpzQqSOFXG5uY2Hlc5o8Grr2/oVqTc8D1TcQIqwos5xVz1CFLp9y2bsZhnn2JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAANvpaSWr6/19VnDR/bQWdWwbFGmK/lqYwAmSmFVTSSF57z5h+SDuH6/PVwTetu6/b7rct7fJFBVl93NIVvq4/LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAwAJA6CGAQAAAAAABAQBAAUCqAGvr20fDZib7QUAAAAwLjQuMDIAAABodHRwczovL2dpdGh1Yi5jb20vV29vZHk0NjE4L3NvbGFuYS1naXRodWItYWN0aW9ucygAAAA4NmI0NjRlODM5YzFmNDU4OTZkZjM0MTkyYWEyM2E1ODQ5NmNkMGQ3AgAAAA4AAAAtLWxpYnJhcnktbmFtZRMAAAB0cmFuc2FjdGlvbl9leGFtcGxljIzAEgAAAAA="
-//   );
-
-//   verificationIxs.instructions[0];
+  if (argv.pdaTx) {
+    const verificationTx = await parseVerificationTransaction(argv.pdaTx);
+    if (verificationTx.instructions.length > 0) {
+      console.log("Adding verification instruction");
+      verificationTx.instructions[0];
+    }
+  }
 
   // Build transaction message with all instructions
-  // NOTE: You first need to upgrade the IDL if you do it after it sais the program is not deployed ...
+  // NOTE: You first need to upgrade the IDL if you do it after it says the program is not deployed ...
+  let instructions = [idlUpgradeIx, programUpgradeIx];
+
+  if (argv.pdaTx) {
+    const verificationTx = await parseVerificationTransaction(argv.pdaTx);
+    if (verificationTx.instructions.length > 0) {
+      console.log("Adding verification instruction");
+      instructions = [verificationTx.instructions[0], ...instructions];
+    }
+  }
+
   const message = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    instructions: [ /*verificationIxs.instructions[0],*/ idlUpgradeIx, programUpgradeIx],
+    instructions,
   });
 
   // Get next transaction index

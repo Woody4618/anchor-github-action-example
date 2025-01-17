@@ -26,7 +26,7 @@ act -W .github/workflows/test.yaml \
 ## How to setup Squads integration:
 
 In general its recommended to use the [Squads Multisig](https://docs.squads.so/squads-cli/overview) to manage your programs.
-It makes your program deployments more secure and is considered good practice. 
+It makes your program deployments more secure and is considered good practice.
 
 1. Setup a new squad in [Squads](https://v4.squads.so/squads/) then transfer your program authority to the squad.
 
@@ -71,7 +71,6 @@ act -W .github/workflows/build.yaml \
 
 idl buffer: 8wUVrofHQYydjFPqZoS4RuQrXjJhRtszzVczonz9Q3cw
 
-
 ## 📝 Todo List
 
 ### Program Verification
@@ -101,8 +100,6 @@ idl buffer: 8wUVrofHQYydjFPqZoS4RuQrXjJhRtszzVczonz9Q3cw
 - [ ] Add Codama support
 - [ ] Add to solana helpers -> release
 
-
-
 Run the squads program upgrade script locally:
 
 ```bash
@@ -119,11 +116,45 @@ npx ts-node scripts/program-upgrade.ts \
   --name "Deploy transaction_example"
 ```
 
-
-
 npx ts-node scripts/squad-transfer.ts \
-  --rpc "https://light-red-uranium.solana-mainnet.quiknode.pro/6dfe053013183b1c2d3416e0cfeaa69730bc6173/" \
-  --multisig "FJviNjW3L2u2kR4TPxzUNpfe2ZjrULCRhQwWEu3LGzny" \
-  --member "5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r" \
-  --recipient "5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r" \
-  --amount 0.002 --keypair ~/.config/solana/id.json
+ --rpc "https://api.mainnet-beta.solana.com" \
+ --multisig "FJviNjW3L2u2kR4TPxzUNpfe2ZjrULCRhQwWEu3LGzny" \
+ --member "5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r" \
+ --recipient "5vJwnLeyjV8uNJSp1zn7VLW8GwiQbcsQbGaVSwRmkE4r" \
+ --amount 0.002 --keypair ~/.config/solana/id.json
+
+Close Buffer:
+
+npx ts-node scripts/squad-closebuffer.ts \
+ --rpc "https://api.mainnet-beta.solana.com" \
+ --multisig "FJviNjW3L2u2kR4TPxzUNpfe2ZjrULCRhQwWEu3LGzny" \
+ --buffer "FsjHoX8BA3qcf6kVMFMrmHm1tJv8oMQTH3FopZzTX7Cf" \
+ --keypair ~/.config/solana/id.json \
+ --program "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
+
+Problems:
+
+- Upgrade Idl instruction needs to be first
+- Can not set buffer authority and upgrade program in the same transaction
+- Local verify build was failing because of docker in docker in act
+- Need to set idl buffer authority and the program idl authority
+-
+
+
+solana-verify export-pda-tx \
+  https://github.com/Woody4618/solana-github-actions \
+  --program-id BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z \
+  --uploader 3JG6ULvZVCrkKtSSskKNJGe8RNZGFe8Ruev9KUhxzK5K \
+  --url https://api.mainnet-beta.solana.com \
+  --encoding base64 \
+  --commit-hash $(git rev-parse HEAD)
+
+
+  act -W .github/workflows/build.yaml \
+ --container-architecture linux/amd64 \
+ --secret-file .secrets \
+ workflow_dispatch \
+ --input program=transaction-example \
+ --input network=mainnet \
+ --input deploy=true \
+ --input upload_idl=true --input use-squads=true --input verify=true

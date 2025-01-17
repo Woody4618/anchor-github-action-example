@@ -180,14 +180,6 @@ async function main() {
     vaultPda
   );
 
-  if (argv.pdaTx) {
-    const verificationTx = await parseVerificationTransaction(argv.pdaTx);
-    if (verificationTx.instructions.length > 0) {
-      console.log("Adding verification instruction");
-      verificationTx.instructions[0];
-    }
-  }
-
   // Build transaction message with all instructions
   // NOTE: You first need to upgrade the IDL if you do it after it says the program is not deployed ...
   let instructions = [idlUpgradeIx, programUpgradeIx];
@@ -196,7 +188,7 @@ async function main() {
     const verificationTx = await parseVerificationTransaction(argv.pdaTx);
     if (verificationTx.instructions.length > 0) {
       console.log("Adding verification instruction");
-      instructions = [verificationTx.instructions[0], ...instructions];
+      instructions = [verificationTx.instructions[2], ...instructions];
     }
   }
 

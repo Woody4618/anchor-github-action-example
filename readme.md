@@ -128,7 +128,7 @@ Close Buffer:
 npx ts-node scripts/squad-closebuffer.ts \
  --rpc "https://api.mainnet-beta.solana.com" \
  --multisig "FJviNjW3L2u2kR4TPxzUNpfe2ZjrULCRhQwWEu3LGzny" \
- --buffer "FsjHoX8BA3qcf6kVMFMrmHm1tJv8oMQTH3FopZzTX7Cf" \
+ --buffer "J2qiM5VJCbjxpB4gnNfH16CMiX4yEhWTAQQ8rhRwVVpz" \
  --keypair ~/.config/solana/id.json \
  --program "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
 

@@ -11,17 +11,6 @@ on:
         description: "Program to build"
         required: true
         default: "transaction_example"
-      use-squads:
-        description: "Use Squads for program deployment"
-        required: false
-        type: boolean
-        default: false
-      solana_version:
-        description: "Override Solana version (leave empty to use version from Cargo.lock)"
-        required: false
-      anchor_version:
-        description: "Override Anchor version (leave empty to use version from Cargo.lock)"
-        required: false
       network:
         description: "Target network for deployment (requires DEVNET_SOLANA_DEPLOY_URL or MAINNET_SOLANA_DEPLOY_URL secret)"
         required: false
@@ -45,6 +34,11 @@ on:
         required: false
         type: boolean
         default: true
+      use-squads:
+        description: "Use Squads for program deployment (requires DEVNET_MULTISIG, DEVNET_MULTISIG_VAULT, MAINNET_MULTISIG, MAINNET_MULTISIG_VAULT secrets)"
+        required: false
+        type: boolean
+        default: false
   # push:
   #   branches: [main]
   # pull_request:
@@ -257,5 +251,5 @@ jobs:
             --idl-buffer ${{ steps.idl-buffer.outputs.buffer }} \
             --multisig ${{ env.MULTISIG }} \
             --keypair <(echo '${{ env.DEPLOYER_KEYPAIR }}') \
-            --name "Deploy ${{ env.PROGRAM_NAME }}"
+            --name "Deploy ${{ env.PROGRAM_NAME }}" \
             --pda-tx '${{ steps.verify-build.outputs.pda_tx }}'

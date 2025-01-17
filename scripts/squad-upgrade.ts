@@ -142,6 +142,7 @@ async function main() {
   const programId = new PublicKey(argv.program);
   const programBuffer = new PublicKey(argv.buffer);
   const idlBuffer = new PublicKey(argv["idl-buffer"]);
+  const pdaTx = argv.pdaTx;
 
   // Get vault PDA (authority)
   const [vaultPda] = multisig.getVaultPda({
@@ -155,6 +156,7 @@ async function main() {
   console.log("Program:", programId.toString());
   console.log("Program Buffer:", programBuffer.toString());
   console.log("IDL Buffer:", idlBuffer.toString());
+  console.log("Extracted PDA transaction:", pdaTx?.toString());
 
   // Create authority transfer instructions
   // NOTE: We cant use this because setting authority and upgrading program in the same transaction fails

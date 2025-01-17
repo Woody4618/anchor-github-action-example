@@ -224,6 +224,7 @@ jobs:
           idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
 
       - uses: ./.github/actions/verify-build/
+        id: verify-build
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'
         with:
           verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
@@ -242,6 +243,8 @@ jobs:
         run: |
           # Install dependencies
           npm install @sqds/multisig @solana/web3.js @coral-xyz/anchor yargs
+
+          echo "PDA Transaction: ${{ steps.verify-build.outputs.pda_tx }}"
 
           # Run upgrade script
           npx ts-node scripts/squad-upgrade.ts \

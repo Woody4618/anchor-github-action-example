@@ -222,8 +222,21 @@ async function main() {
       memo: "Program and IDL upgrade",
     });
 
-    console.log("Confirming transaction:", createVaultSignature);
-    await connection.confirmTransaction(createVaultSignature);
+    console.log("Waiting for transaction confirmation...");
+    const confirmation = await connection.confirmTransaction(
+      {
+        signature: createVaultSignature,
+        blockhash: (await connection.getLatestBlockhash()).blockhash,
+        lastValidBlockHeight: (
+          await connection.getLatestBlockhash()
+        ).lastValidBlockHeight,
+      },
+      "confirmed"
+    );
+
+    if (confirmation.value.err) {
+      console.log(`Transaction failed: ${confirmation.value.err}`);
+    }
     console.log("Transaction Created - Signature:", createVaultSignature);
 
     console.log("\n=== Creating Proposal ===");
@@ -235,8 +248,23 @@ async function main() {
       creator: keypair,
     });
 
-    console.log("Confirming proposal:", proposalCreateSignature);
-    await connection.confirmTransaction(createVaultSignature);
+    console.log("Waiting for proposal confirmation...");
+    const proposalConfirmation = await connection.confirmTransaction(
+      {
+        signature: proposalCreateSignature,
+        blockhash: (await connection.getLatestBlockhash()).blockhash,
+        lastValidBlockHeight: (
+          await connection.getLatestBlockhash()
+        ).lastValidBlockHeight,
+      },
+      "confirmed"
+    );
+
+    if (proposalConfirmation.value.err) {
+      console.log(
+        `Proposal creation failed: ${proposalConfirmation.value.err}`
+      );
+    }
     console.log("Proposal Created - Signature:", proposalCreateSignature);
     console.log("\nPlease approve in Squads UI: https://v4.squads.so/");
   } catch (error) {

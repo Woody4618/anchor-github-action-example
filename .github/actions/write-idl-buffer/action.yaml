@@ -77,15 +77,15 @@ runs:
                 --program-id ${{ inputs.program-id }} \
                 --new-authority ${{ inputs.idl-authority }} \
                 --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json || echo "Failed to set buffer authority (might already be set)"
+                --provider.wallet ./deploy-keypair.json && break
 
               # Try to set program IDL authority, but continue if it fails  
               anchor idl set-authority \
                 --program-id ${{ inputs.program-id }} \
                 --new-authority ${{ inputs.idl-authority }} \
                 --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json || echo "Failed to set program IDL authority (might already be set)"
-
+                --provider.wallet ./deploy-keypair.json && break
+                
               break
             fi
           done

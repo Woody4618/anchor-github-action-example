@@ -188,7 +188,7 @@ async function main() {
     const verificationTx = await parseVerificationTransaction(argv.pdaTx);
     if (verificationTx.instructions.length > 0) {
       console.log("Adding verification instruction");
-      instructions = [verificationTx.instructions[2], ...instructions];
+      instructions = [verificationTx.instructions[1], ...instructions];
     }
   }
 

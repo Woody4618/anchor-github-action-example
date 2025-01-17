@@ -66,22 +66,24 @@ runs:
 
             # Extract buffer address
             BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
-            echo "Found buffer: $BUFFER"
-
+            
             if [ ! -z "$BUFFER" ]; then
-              # Set buffer authority with retries
-              for j in {1..5}; do
-                echo "Attempt $j to set IDL authority..."
-                sleep $((j * 2))
+              echo "Found buffer: $BUFFER"
+              echo "Current Authority: $(solana address -k ./deploy-keypair.json)"
+              echo "New Authority: ${{ inputs.idl-authority }}"
 
-                # Set buffer authority
-                anchor idl set-authority $BUFFER \
-                  --program-id ${{ inputs.program-id }} \
-                  --new-authority ${{ inputs.idl-authority }} \
-                  --provider.cluster ${{ inputs.rpc-url }} \
-                  --provider.wallet ./deploy-keypair.json && break
-              done
-              break
+              anchor idl set-authority $BUFFER \
+                --program-id ${{ inputs.program-id }} \
+                --new-authority ${{ inputs.idl-authority }} \
+                --provider.cluster ${{ inputs.rpc-url }} \
+                --provider.wallet ./deploy-keypair.json && break
+
+              # Set program idl authority
+              anchor idl set-authority \
+                --program-id ${{ inputs.program-id }} \
+                --new-authority ${{ inputs.idl-authority }} \
+                --provider.cluster ${{ inputs.rpc-url }} \
+                --provider.wallet ./deploy-keypair.json && break
             fi
           done
 

@@ -134,13 +134,13 @@ jobs:
           devnet: ${{ github.event.inputs.network == 'devnet' }}
           program: ${{ env.PROGRAM_NAME }}
 
-      - uses: ./.github/actions/build-verified/
-        id: build-verified
-        with:
-          verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
-          devnet: ${{ github.event.inputs.network == 'devnet' }}
-          program: ${{ env.PROGRAM_NAME }}
-          program-id: ${{ env.PROGRAM_ID }}
+      # - uses: ./.github/actions/build-verified/
+      #   id: build-verified
+      #   with:
+      #     verify-version: ${{ env.SOLANA_VERIFY_VERSION }}
+      #     devnet: ${{ github.event.inputs.network == 'devnet' }}
+      #     program: ${{ env.PROGRAM_NAME }}
+      #     program-id: ${{ env.PROGRAM_ID }}
 
       - name: Create local artifacts directory
         run: |

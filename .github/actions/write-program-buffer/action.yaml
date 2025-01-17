@@ -81,20 +81,23 @@ runs:
           echo "Found buffer: $BUFFER"
           echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
 
-    # - name: Transfer buffer authority
-    #   if: steps.check-program.outputs.exists == 'true'
-    #   uses: nick-invision/retry@v2
-    #   with:
-    #     timeout_minutes: 10
-    #     max_attempts: 50
-    #     shell: bash
-    #     command: |
-    #       BUFFER="${{ steps.write-buffer.outputs.buffer }}"
-    #       echo "Transferring buffer authority for $BUFFER to ${{ inputs.buffer-authority-address }}"
-    #       solana program set-buffer-authority $BUFFER \
-    #         --keypair ./deploy-keypair.json \
-    #         --new-buffer-authority ${{ inputs.buffer-authority-address }} \
-    #         --url ${{ inputs.rpc-url }}
+    # We can not set authority and upgrade program in the same instruction so it needs to be here
+    # The rent for the buffer will be returned to the local keypair though. So its fine.
+    # If the deploy fails you can also close the buffer with the multisig using the cli command squad-closebuffer
+    - name: Transfer buffer authority
+      if: steps.check-program.outputs.exists == 'true'
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 10
+        max_attempts: 50
+        shell: bash
+        command: |
+          BUFFER="${{ steps.write-buffer.outputs.buffer }}"
+          echo "Transferring buffer authority for $BUFFER to ${{ inputs.buffer-authority-address }}"
+          solana program set-buffer-authority $BUFFER \
+            --keypair ./deploy-keypair.json \
+            --new-buffer-authority ${{ inputs.buffer-authority-address }} \
+            --url ${{ inputs.rpc-url }}
 
     - name: Cleanup
       if: always()

@@ -45,7 +45,7 @@ runs:
     - uses: ./.github/actions/setup-solana-verify/
       with:
         verify-version: ${{ inputs.verify-version }}
-    
+
     - name: Write keypair
       shell: bash
       run: |
@@ -53,7 +53,7 @@ runs:
         chmod 600 ./deploy-keypair.json
       env:
         DEPLOY_KEYPAIR: ${{ inputs.keypair }}
-      
+
     - name: Debug Environment
       shell: bash
       run: |
@@ -61,32 +61,32 @@ runs:
         echo "Verify: ${{ github.event.inputs.verify }}"
         echo "Has keypair: ${{ inputs.keypair != '' }}"
         echo "RPC URL: ${{ inputs.rpc-url }}"
-      
+
     - name: Verify Build
       shell: bash
       run: |
         ARGS=""
-        
+
         if [ "${{ inputs.skip-build }}" = "true" ]; then
           ARGS="$ARGS --skip-build"
         fi
-        
+
         if [ "${{ inputs.skip-prompt }}" = "true" ]; then
           ARGS="$ARGS --skip-prompt"
         fi
-        
+
         if [ -n "${{ inputs.mount-path }}" ]; then
           ARGS="$ARGS --mount-path ${{ inputs.mount-path }}"
         fi
-        
+
         if [ -n "${{ inputs.commit-hash }}" ]; then
           ARGS="$ARGS --commit-hash ${{ inputs.commit-hash }}"
         fi
-        
+
         if [ "${{ inputs.network }}" = "mainnet" ]; then
           ARGS="$ARGS --remote"
         fi
-        
+
         solana-verify verify-from-repo \
           --program-id ${{ inputs.program-id }} \
           --url ${{ inputs.rpc-url }} \
@@ -94,8 +94,20 @@ runs:
           -k ./deploy-keypair.json \
           $ARGS \
           ${{ inputs.repo-url }}
-          
+
+    - name: Export PDA Transaction
+      shell: bash
+      run: |
+        echo "=== Exporting PDA Transaction ==="
+        solana-verify export-pda-tx \
+          ${{ inputs.repo-url }} \
+          --program-id ${{ inputs.program-id }} \
+          --uploader ${{ inputs.keypair }} \
+          --commit-hash ${{ inputs.commit-hash }} \
+          --url ${{ inputs.rpc-url }} \
+          --encoding base64 
+
     - name: Cleanup keypair
       shell: bash
       if: always()
-      run: rm -f ./deploy-keypair.json 
+      run: rm -f ./deploy-keypair.json

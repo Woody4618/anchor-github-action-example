@@ -7,6 +7,8 @@ import {
   SYSVAR_CLOCK_PUBKEY,
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
+  Transaction,
+  VersionedTransaction,
 } from "@solana/web3.js";
 import { idlAddress } from "@coral-xyz/anchor/dist/cjs/idl";
 import * as yargs from "yargs";
@@ -68,45 +70,6 @@ async function createProgramUpgradeInstruction(
   });
 }
 
-async function confirmTransaction(
-  connection: Connection,
-  signature: string,
-  maxAttempts = 3
-) {
-  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-    try {
-      const latestBlockhash = await connection.getLatestBlockhash();
-      const confirmation = await connection.confirmTransaction(
-        {
-          signature,
-          blockhash: latestBlockhash.blockhash,
-          lastValidBlockHeight: latestBlockhash.lastValidBlockHeight,
-        },
-        "confirmed"
-      );
-
-      if (confirmation.value.err) {
-        throw new Error(`Transaction failed: ${confirmation.value.err}`);
-      }
-
-      return confirmation;
-    } catch (error) {
-      // Check if transaction was actually confirmed despite timeout
-      const status = await connection.getSignatureStatus(signature);
-      if (status?.value?.confirmationStatus === "confirmed") {
-        return status;
-      }
-
-      if (attempt < maxAttempts) {
-        console.log(`Confirmation attempt ${attempt} failed, retrying...`);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-        continue;
-      }
-      throw error;
-    }
-  }
-}
-
 async function createSetBufferAuthorityInstruction(
   bufferAddress: PublicKey,
   currentAuthority: PublicKey,
@@ -121,6 +84,16 @@ async function createSetBufferAuthorityInstruction(
     programId: BPF_UPGRADE_LOADER_ID,
     data: Buffer.from([4, 0, 0, 0]), // SetBufferAuthority instruction
   });
+}
+
+async function parseVerificationTransaction(
+  base64String: string
+): Promise<Transaction> {
+  // Decode base64 to buffer
+  const buffer = Buffer.from(base64String, "base64");
+
+  // Parse into versioned transaction
+  return Transaction.from(buffer);
 }
 
 async function main() {
@@ -199,11 +172,18 @@ async function main() {
     vaultPda
   );
 
+//   const verificationIxs = await parseVerificationTransaction(
+//     "AQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAQGIiNQmHKbDYpSrbduAJeHBzlyqpzQqSOFXG5uY2Hlc5o8Grr2/oVqTc8D1TcQIqwos5xVz1CFLp9y2bsZhnn2JAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwZGb+UhFzL/7K26csOb57yM5bvF9xJrLEObOkAAAAANvpaSWr6/19VnDR/bQWdWwbFGmK/lqYwAmSmFVTSSF57z5h+SDuH6/PVwTetu6/b7rct7fJFBVl93NIVvq4/LAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAwAJA6CGAQAAAAAABAQBAAUCqAGvr20fDZib7QUAAAAwLjQuMDIAAABodHRwczovL2dpdGh1Yi5jb20vV29vZHk0NjE4L3NvbGFuYS1naXRodWItYWN0aW9ucygAAAA4NmI0NjRlODM5YzFmNDU4OTZkZjM0MTkyYWEyM2E1ODQ5NmNkMGQ3AgAAAA4AAAAtLWxpYnJhcnktbmFtZRMAAAB0cmFuc2FjdGlvbl9leGFtcGxljIzAEgAAAAA="
+//   );
+
+//   verificationIxs.instructions[0];
+
   // Build transaction message with all instructions
+  // NOTE: You first need to upgrade the IDL if you do it after it sais the program is not deployed ...
   const message = new TransactionMessage({
     payerKey: vaultPda,
     recentBlockhash: (await connection.getLatestBlockhash()).blockhash,
-    instructions: [programBufferAuthorityIx, programUpgradeIx, idlUpgradeIx],
+    instructions: [ /*verificationIxs.instructions[0],*/ idlUpgradeIx, programUpgradeIx],
   });
 
   // Get next transaction index
@@ -211,7 +191,10 @@ async function main() {
     connection,
     multisigPda
   );
-  const newTransactionIndex = BigInt(Number(multisigInfo.transactionIndex) + 1);
+
+  const currentTransactionIndex = Number(multisigInfo.transactionIndex);
+
+  const newTransactionIndex = BigInt(currentTransactionIndex + 1);
 
   try {
     console.log("\n=== Creating Upgrade Transaction ===");
@@ -228,7 +211,7 @@ async function main() {
     });
 
     console.log("Confirming transaction:", createVaultSignature);
-    await confirmTransaction(connection, createVaultSignature);
+    await connection.confirmTransaction(createVaultSignature);
     console.log("Transaction Created - Signature:", createVaultSignature);
 
     console.log("\n=== Creating Proposal ===");
@@ -241,7 +224,7 @@ async function main() {
     });
 
     console.log("Confirming proposal:", proposalCreateSignature);
-    await confirmTransaction(connection, proposalCreateSignature);
+    await connection.confirmTransaction(createVaultSignature);
     console.log("Proposal Created - Signature:", proposalCreateSignature);
     console.log("\nPlease approve in Squads UI: https://v4.squads.so/");
   } catch (error) {

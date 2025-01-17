@@ -53,22 +53,37 @@ runs:
         max_attempts: 3
         shell: bash
         command: |
-          # Write buffer
-          anchor idl write-buffer ${{ inputs.program-id }} \
-            --filepath ./target/idl/${{ inputs.program }}.json \
-            --provider.cluster ${{ inputs.rpc-url }} \
-            --provider.wallet ./deploy-keypair.json > buffer.out
+          # Write buffer with retries for RPC issues
+          for i in {1..5}; do
+            echo "Attempt $i to write IDL buffer..."
+            sleep $((i * 2))  # Exponential backoff
 
-          # Extract buffer address
-          BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
-          echo "Found buffer: $BUFFER"
+            # Write buffer
+            anchor idl write-buffer ${{ inputs.program-id }} \
+              --filepath ./target/idl/${{ inputs.program }}.json \
+              --provider.cluster ${{ inputs.rpc-url }} \
+              --provider.wallet ./deploy-keypair.json > buffer.out
 
-          # Set buffer authority
-          anchor idl set-authority $BUFFER \
-            --program-id ${{ inputs.program-id }} \
-            --new-authority ${{ inputs.idl-authority }} \
-            --provider.cluster ${{ inputs.rpc-url }} \
-            --provider.wallet ./deploy-keypair.json
+            # Extract buffer address
+            BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
+            echo "Found buffer: $BUFFER"
+
+            if [ ! -z "$BUFFER" ]; then
+              # Set buffer authority with retries
+              for j in {1..5}; do
+                echo "Attempt $j to set IDL authority..."
+                sleep $((j * 2))
+
+                # Set buffer authority
+                anchor idl set-authority $BUFFER \
+                  --program-id ${{ inputs.program-id }} \
+                  --new-authority ${{ inputs.idl-authority }} \
+                  --provider.cluster ${{ inputs.rpc-url }} \
+                  --provider.wallet ./deploy-keypair.json && break
+              done
+              break
+            fi
+          done
 
           echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
 

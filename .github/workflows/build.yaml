@@ -231,17 +231,19 @@ jobs:
 
       - name: Deploy Program (Squads)
         if: github.event.inputs.deploy == 'true' && github.event.inputs.use-squads == 'true'
-        uses: helium/squads-program-upgrade@v0.3.3
-        with:
-          network-url: ${{ env.DEPLOY_URL }}
-          program-multisig: ${{ env.MULTISIG }}
-          program-id: ${{ env.PROGRAM_ID }}
-          buffer: ${{ steps.program-buffer.outputs.buffer }}
-          idl-buffer: ${{ steps.idl-buffer.outputs.buffer }}
-          spill-address: ${{ env.DEPLOYER_ADDRESS }}
-          authority: ${{ env.MULTISIG_VAULT }}
-          name: "Deploy ${{ env.PROGRAM_NAME }}"
-          keypair: ${{ env.DEPLOYER_KEYPAIR }}
+        run: |
+          # Install dependencies
+          npm install @sqds/multisig @solana/web3.js @coral-xyz/anchor yargs
+
+          # Run upgrade script
+          npx ts-node scripts/squad-upgrade.ts \
+            --rpc ${{ env.DEPLOY_URL }} \
+            --program ${{ env.PROGRAM_ID }} \
+            --buffer ${{ steps.program-buffer.outputs.buffer }} \
+            --idl-buffer ${{ steps.idl-buffer.outputs.buffer }} \
+            --multisig ${{ env.MULTISIG }} \
+            --keypair <(echo '${{ env.DEPLOYER_KEYPAIR }}') \
+            --name "Deploy ${{ env.PROGRAM_NAME }}"
 
       - uses: ./.github/actions/verify-build/
         if: github.event_name == 'workflow_dispatch' && github.event.inputs.verify == 'true'

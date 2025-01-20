@@ -256,11 +256,14 @@ async function main() {
 
     const latestBlockHash = await connection.getLatestBlockhash();
 
-    await connection.confirmTransaction({
-      blockhash: latestBlockHash.blockhash,
-      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-      signature: createVaultSignature,
-    });
+    await connection.confirmTransaction(
+      {
+        blockhash: latestBlockHash.blockhash,
+        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+        signature: createVaultSignature,
+      },
+      "confirmed"
+    );
 
     console.log("Transaction Created - Signature:", createVaultSignature);
 

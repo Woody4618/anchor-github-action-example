@@ -254,21 +254,21 @@ async function main() {
       }
     );
 
+    const latestBlockHash = await connection.getLatestBlockhash();
+
+    await connection.confirmTransaction({
+      blockhash: latestBlockHash.blockhash,
+      lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
+      signature: createVaultSignature,
+    });
+
     console.log("Transaction Created - Signature:", createVaultSignature);
-
-    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
-      connection,
-      multisigPda
-    );
-
-    // Get the current transaction index
-    const transactionIndex = Number(multisigInfo.transactionIndex);
 
     // Create proposal instruction
     console.log("\n=== Creating Proposal ===");
     const proposalIx = await multisig.instructions.proposalCreate({
       multisigPda,
-      transactionIndex: BigInt(transactionIndex),
+      transactionIndex: newTransactionIndex,
       creator: keypair.publicKey,
     });
 

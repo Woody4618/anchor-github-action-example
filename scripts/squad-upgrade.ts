@@ -230,13 +230,13 @@ async function main() {
     // Create transaction and add compute budget
     const tx = new Transaction();
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    tx.add(createVaultTxIx);
     await prepareTransactionWithCompute(
       connection,
       tx,
       keypair.publicKey,
       100_000
     );
-    tx.add(createVaultTxIx);
 
     // Send transaction
     const createVaultSignature = await sendTransactionWithRetry(
@@ -267,13 +267,13 @@ async function main() {
     // Create and prepare proposal transaction
     const proposalTx = new Transaction();
     proposalTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    proposalTx.add(proposalIx);
     await prepareTransactionWithCompute(
       connection,
       proposalTx,
       keypair.publicKey,
       100_000
     );
-    proposalTx.add(proposalIx);
 
     // Send proposal transaction
     const proposalSignature = await sendTransactionWithRetry(

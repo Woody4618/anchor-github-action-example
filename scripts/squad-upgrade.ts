@@ -12,6 +12,11 @@ import {
 } from "@solana/web3.js";
 import { idlAddress } from "@coral-xyz/anchor/dist/cjs/idl";
 import * as yargs from "yargs";
+import {
+  prepareTransactionWithCompute,
+  sendTransactionWithRetry,
+  type TxStatusUpdate,
+} from "./transaction-helpers";
 
 const BPF_UPGRADE_LOADER_ID = new PublicKey(
   "BPFLoaderUpgradeab1e11111111111111111111111"
@@ -210,9 +215,9 @@ async function main() {
 
   try {
     console.log("\n=== Creating Upgrade Transaction ===");
-    const createVaultSignature = await multisig.rpc.vaultTransactionCreate({
-      connection,
-      feePayer: keypair,
+
+    // Create vault transaction instruction
+    const createVaultTxIx = await multisig.instructions.vaultTransactionCreate({
       multisigPda,
       transactionIndex: newTransactionIndex,
       creator: keypair.publicKey,
@@ -222,55 +227,74 @@ async function main() {
       memo: "Program and IDL upgrade",
     });
 
-    console.log("Waiting for transaction confirmation...");
-    const confirmation = await connection.confirmTransaction(
+    // Create transaction and add compute budget
+    const tx = new Transaction();
+    await prepareTransactionWithCompute(
+      connection,
+      tx,
+      keypair.publicKey,
+      100_000
+    );
+    tx.add(createVaultTxIx);
+
+    // Send transaction
+    const createVaultSignature = await sendTransactionWithRetry(
+      connection,
+      tx,
+      [keypair],
       {
-        signature: createVaultSignature,
-        blockhash: (await connection.getLatestBlockhash()).blockhash,
-        lastValidBlockHeight: (
-          await connection.getLatestBlockhash()
-        ).lastValidBlockHeight,
-      },
-      "confirmed"
+        commitment: "confirmed",
+        skipPreflight: true,
+        onStatusUpdate: (status: TxStatusUpdate) => {
+          if (status.status === "confirmed") {
+            console.log("Transaction confirmed:", status.result);
+          }
+        },
+      }
     );
 
-    if (confirmation.value.err) {
-      console.log(`Transaction failed: ${confirmation.value.err}`);
-    }
     console.log("Transaction Created - Signature:", createVaultSignature);
 
+    // Create proposal instruction
     console.log("\n=== Creating Proposal ===");
-    const proposalCreateSignature = await multisig.rpc.proposalCreate({
-      connection,
-      feePayer: keypair,
+    const proposalIx = await multisig.instructions.proposalCreate({
       multisigPda,
       transactionIndex: newTransactionIndex,
-      creator: keypair,
+      creator: keypair.publicKey,
     });
 
-    console.log("Waiting for proposal confirmation...");
-    const proposalConfirmation = await connection.confirmTransaction(
+    // Create and prepare proposal transaction
+    const proposalTx = new Transaction();
+    await prepareTransactionWithCompute(
+      connection,
+      proposalTx,
+      keypair.publicKey,
+      100_000
+    );
+    proposalTx.add(proposalIx);
+
+    // Send proposal transaction
+    const proposalSignature = await sendTransactionWithRetry(
+      connection,
+      proposalTx,
+      [keypair],
       {
-        signature: proposalCreateSignature,
-        blockhash: (await connection.getLatestBlockhash()).blockhash,
-        lastValidBlockHeight: (
-          await connection.getLatestBlockhash()
-        ).lastValidBlockHeight,
-      },
-      "confirmed"
+        commitment: "confirmed",
+        skipPreflight: true,
+        onStatusUpdate: (status: TxStatusUpdate) => {
+          if (status.status === "confirmed") {
+            console.log("Proposal confirmed:", status.result);
+          }
+        },
+      }
     );
 
-    if (proposalConfirmation.value.err) {
-      console.log(
-        `Proposal creation failed: ${proposalConfirmation.value.err}`
-      );
-    }
-    console.log("Proposal Created - Signature:", proposalCreateSignature);
+    console.log("Proposal Created - Signature:", proposalSignature);
     console.log("\nPlease approve in Squads UI: https://v4.squads.so/");
   } catch (error) {
     console.error("\n=== Error ===");
     console.error("Error details:", error);
-    process.exit(1); // Exit with error code to prevent double logging
+    process.exit(1);
   }
 }
 

@@ -49,48 +49,64 @@ runs:
       if: steps.check-idl.outputs.exists == 'true'
       uses: nick-invision/retry@v2
       with:
-        timeout_minutes: 10
+        timeout_minutes: 5
         max_attempts: 3
         shell: bash
         command: |
-          # Write buffer with retries for RPC issues
+          # Write buffer with retries
           for i in {1..5}; do
             echo "Attempt $i to write IDL buffer..."
-            sleep $((i * 2))  # Exponential backoff
-
-            # Write buffer
+            sleep $((i * 2))
+            
             anchor idl write-buffer ${{ inputs.program-id }} \
               --filepath ./target/idl/${{ inputs.program }}.json \
               --provider.cluster ${{ inputs.rpc-url }} \
+              --priority-fee 100000 \
               --provider.wallet ./deploy-keypair.json > buffer.out
 
-            # Extract buffer address
             BUFFER=$(cat buffer.out | grep -o 'Idl buffer created: [^ ]*' | cut -d' ' -f4)
-            
             if [ ! -z "$BUFFER" ]; then
-              echo "Found buffer: $BUFFER"
-              echo "Current Authority: $(solana address -k ./deploy-keypair.json)"
-              echo "New Authority: ${{ inputs.idl-authority }}"
-
-              # Try to set buffer authority, but continue if it fails
-              anchor idl set-authority $BUFFER \
-                --program-id ${{ inputs.program-id }} \
-                --new-authority ${{ inputs.idl-authority }} \
-                --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json && break
-
-              # Try to set program IDL authority, but continue if it fails  
-              anchor idl set-authority \
-                --program-id ${{ inputs.program-id }} \
-                --new-authority ${{ inputs.idl-authority }} \
-                --provider.cluster ${{ inputs.rpc-url }} \
-                --provider.wallet ./deploy-keypair.json && break
-                
+              echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
               break
             fi
           done
 
-          echo "buffer=$BUFFER" >> $GITHUB_OUTPUT
+          if [ -z "$BUFFER" ]; then
+            echo "Failed to create IDL buffer after 5 attempts"
+            exit 1
+          fi
+
+    - name: Set Buffer Authority
+      if: steps.write-buffer.outputs.buffer != ''
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        shell: bash
+        command: |
+          echo "Setting buffer authority..."
+          anchor idl set-authority ${{ steps.write-buffer.outputs.buffer }} \
+            --program-id ${{ inputs.program-id }} \
+            --new-authority ${{ inputs.idl-authority }} \
+            --provider.cluster ${{ inputs.rpc-url }} \
+            --priority-fee 100000 \
+            --provider.wallet ./deploy-keypair.json
+
+    - name: Set Program IDL Authority
+      if: steps.write-buffer.outputs.buffer != ''
+      uses: nick-invision/retry@v2
+      with:
+        timeout_minutes: 5
+        max_attempts: 3
+        shell: bash
+        command: |
+          echo "Setting program IDL authority..."
+          anchor idl set-authority \
+            --program-id ${{ inputs.program-id }} \
+            --new-authority ${{ inputs.idl-authority }} \
+            --provider.cluster ${{ inputs.rpc-url }} \
+            --priority-fee 100000 \
+            --provider.wallet ./deploy-keypair.json || echo "Failed to set program IDL authority (this is ok if the authority is already set to squads for example)"
 
     - name: Cleanup
       if: always()

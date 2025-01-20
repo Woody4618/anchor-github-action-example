@@ -10,7 +10,7 @@ runs:
   steps:
     - uses: ./.github/actions/setup/
     - uses: ./.github/actions/setup-solana/
-    
+
     - name: Debug Version Values
       shell: bash
       run: |

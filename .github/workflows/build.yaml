@@ -20,12 +20,12 @@ on:
           - devnet
           - mainnet
       deploy:
-        description: "Deploy program (requires DEVNET_DEPLOYER_KEYPAIR/MAINNET_DEPLOYER_KEYPAIR and DEVNET_DEPLOYER_ADDRESS/MAINNET_DEPLOYER_ADDRESS secrets)"
+        description: "Deploy program (requires DEVNET_DEPLOYER_KEYPAIR/MAINNET_DEPLOYER_KEYPAIR secrets)"
         required: false
         type: boolean
         default: false
       upload_idl:
-        description: "Upload IDL (requires IDL_AUTHORITY secret)"
+        description: "Upload IDL (uses either deploy keypair or squads vault automatically)"
         required: false
         type: boolean
         default: true
@@ -49,9 +49,6 @@ on:
 #   - MAINNET_SOLANA_DEPLOY_URL: The RPC URL for mainnet deployments
 #   - DEVNET_DEPLOYER_KEYPAIR: The base58 encoded keypair for devnet deployments
 #   - MAINNET_DEPLOYER_KEYPAIR: The base58 encoded keypair for mainnet deployments
-#   - DEVNET_DEPLOYER_ADDRESS: The public key address for devnet buffer authority
-#   - MAINNET_DEPLOYER_ADDRESS: The public key address for mainnet buffer authority
-#   - IDL_AUTHORITY: The keypair with authority to upload IDL
 #   - PROGRAM_ADDRESS_KEYPAIR: The keypair for initial program deployment (if program doesn't exist)
 
 jobs:
@@ -69,13 +66,11 @@ jobs:
           if [ "$IS_MAINNET" = "true" ]; then
             echo "DEPLOY_URL=${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}" >> $GITHUB_ENV
             echo "DEPLOYER_KEYPAIR=${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" >> $GITHUB_ENV
-            echo "DEPLOYER_ADDRESS=${{ secrets.MAINNET_DEPLOYER_ADDRESS }}" >> $GITHUB_ENV
             echo "MULTISIG=${{ secrets.MAINNET_MULTISIG }}" >> $GITHUB_ENV
             echo "MULTISIG_VAULT=${{ secrets.MAINNET_MULTISIG_VAULT }}" >> $GITHUB_ENV
           else
             echo "DEPLOY_URL=${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}" >> $GITHUB_ENV
             echo "DEPLOYER_KEYPAIR=${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" >> $GITHUB_ENV
-            echo "DEPLOYER_ADDRESS=${{ secrets.DEVNET_DEPLOYER_ADDRESS }}" >> $GITHUB_ENV
             echo "MULTISIG=${{ secrets.DEVNET_MULTISIG }}" >> $GITHUB_ENV
             echo "MULTISIG_VAULT=${{ secrets.DEVNET_MULTISIG_VAULT }}" >> $GITHUB_ENV
           fi
@@ -111,6 +106,26 @@ jobs:
           echo "Program: $PROGRAM_ID"
           echo "PROGRAM_NAME=${PROGRAM_NAME}" >> $GITHUB_ENV
           echo "PROGRAM_ID=${PROGRAM_ID}" >> $GITHUB_ENV
+
+      - name: Extract Addresses from Keypairs
+        run: |
+          # Extract deployer addresses
+          if [ "$IS_MAINNET" = "true" ]; then
+            echo "${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
+            echo "DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)" >> $GITHUB_ENV
+            rm deployer-keypair.json
+          else
+            echo "${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
+            echo "DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)" >> $GITHUB_ENV
+            rm deployer-keypair.json
+          fi
+
+          # Extract program address if keypair exists
+          if [ ! -z "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
+            echo "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" > program-keypair.json
+            echo "PROGRAM_ADDRESS=$(solana-keygen pubkey program-keypair.json)" >> $GITHUB_ENV
+            rm program-keypair.json
+          fi
 
       - name: Debug Initial Structure
         run: |

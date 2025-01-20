@@ -262,13 +262,14 @@ async function main() {
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: createVaultSignature,
       },
-      "confirmed"
+      "finalized"
     );
 
     console.log("Transaction Created - Signature:", createVaultSignature);
 
     // Create proposal instruction
     console.log("\n=== Creating Proposal ===");
+    console.log("\nWith transaction index:", newTransactionIndex);
     const proposalIx = await multisig.instructions.proposalCreate({
       multisigPda,
       transactionIndex: newTransactionIndex,

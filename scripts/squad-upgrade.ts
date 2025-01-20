@@ -229,6 +229,7 @@ async function main() {
 
     // Create transaction and add compute budget
     const tx = new Transaction();
+    tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     await prepareTransactionWithCompute(
       connection,
       tx,
@@ -265,6 +266,7 @@ async function main() {
 
     // Create and prepare proposal transaction
     const proposalTx = new Transaction();
+    proposalTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     await prepareTransactionWithCompute(
       connection,
       proposalTx,

@@ -289,23 +289,23 @@ async function main() {
       100_000
     );
 
-    // Send proposal transaction
-    const proposalSignature = await sendTransactionWithRetry(
-      connection,
-      proposalTx,
-      [keypair],
-      {
-        commitment: "confirmed",
-        skipPreflight: true,
-        onStatusUpdate: (status: TxStatusUpdate) => {
-          if (status.status === "confirmed") {
-            console.log("Proposal confirmed:", status.result);
-          }
-        },
-      }
-    );
+    // // Send proposal transaction
+    // const proposalSignature = await sendTransactionWithRetry(
+    //   connection,
+    //   proposalTx,
+    //   [keypair],
+    //   {
+    //     commitment: "confirmed",
+    //     skipPreflight: true,
+    //     onStatusUpdate: (status: TxStatusUpdate) => {
+    //       if (status.status === "confirmed") {
+    //         console.log("Proposal confirmed:", status.result);
+    //       }
+    //     },
+    //   }
+    // );
 
-    console.log("Proposal Created - Signature:", proposalSignature);
+    //console.log("Proposal Created - Signature:", proposalSignature);
     console.log("\nPlease approve in Squads UI: https://v4.squads.so/");
   } catch (error) {
     console.error("\n=== Error ===");

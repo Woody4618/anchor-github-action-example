@@ -262,7 +262,7 @@ async function main() {
         lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
         signature: createVaultSignature,
       },
-      "finalized"
+      "confirmed"
     );
 
     console.log("Transaction Created - Signature:", createVaultSignature);

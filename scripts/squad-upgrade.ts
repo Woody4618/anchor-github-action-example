@@ -256,17 +256,27 @@ async function main() {
 
     console.log("Transaction Created - Signature:", createVaultSignature);
 
+    const multisigInfo = await multisig.accounts.Multisig.fromAccountAddress(
+      connection,
+      multisigPda
+    );
+
+    // Get the current transaction index
+    const transactionIndex = Number(multisigInfo.transactionIndex);
+
     // Create proposal instruction
     console.log("\n=== Creating Proposal ===");
     const proposalIx = await multisig.instructions.proposalCreate({
       multisigPda,
-      transactionIndex: newTransactionIndex,
+      transactionIndex: BigInt(transactionIndex),
       creator: keypair.publicKey,
     });
 
     // Create and prepare proposal transaction
     const proposalTx = new Transaction();
-    proposalTx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
+    proposalTx.recentBlockhash = (
+      await connection.getLatestBlockhash()
+    ).blockhash;
     proposalTx.add(proposalIx);
     await prepareTransactionWithCompute(
       connection,

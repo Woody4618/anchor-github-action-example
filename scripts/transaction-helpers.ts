@@ -57,6 +57,7 @@ import {
     const rpcResponse = await connection.simulateTransaction(testTransaction, {
       replaceRecentBlockhash: true,
       sigVerify: false,
+      commitment: "confirmed",
     });
   
     if (rpcResponse?.value?.err) {

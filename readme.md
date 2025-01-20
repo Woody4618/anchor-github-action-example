@@ -30,6 +30,33 @@ MAINNET_MULTISIG=          # Mainnet Squads multisig address
 MAINNET_MULTISIG_VAULT=    # Mainnet Squads vault address
 ```
 
+### Extends and automate 
+
+You can easily extend or change your workflow. For example run the build workflow automatically on every push to a development branch. 
+
+```bash
+  push:
+    branches: 
+      - develop
+      - dev
+      - development
+    paths:
+      - 'programs/**'
+      - 'Anchor.toml'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
+```
+
+Or run a new release to mainnet on every tag push for example. 
+
+```bash
+  push:
+    tags:
+      - 'v*'
+```
+
+Customize the workflow to your needs! 
+
 ### Running the actions locally
 
 If you for some reason want to run the actions locally you can do so with the following commands using the act command.

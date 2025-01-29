@@ -37,7 +37,7 @@ runs:
         echo "3. Full tag that will be used: 'v${{ inputs.anchor-version }}'"
         echo "4. Cache key being used: 'anchor-cli-${{ runner.os }}-v0003-${{ inputs.anchor-version }}'"
         echo "=== Starting Installation ==="
-        cargo install --git https://github.com/coral-xyz/anchor --tag "v${{ inputs.anchor-version }}" anchor-cli --locked --force
+        cargo install --git https://github.com/coral-xyz/anchor --tag "v${{ inputs.anchor-version }}" anchor-cli --force
         echo "=== Installation Complete ==="
         anchor --version
 

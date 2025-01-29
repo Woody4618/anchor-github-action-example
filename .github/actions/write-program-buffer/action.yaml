@@ -93,23 +93,26 @@ runs:
         max_attempts: 3
         shell: bash
         command: |
-          echo "Creating program buffer..."
+          echo "Creating program buffer... (Attempt $RETRY_ATTEMPT of 3)"
           OUTPUT=$(solana program write-buffer \
             ./target/deploy/${{ inputs.program }}.so \
             --url ${{ inputs.rpc-url }} \
             --keypair ./deploy-keypair.json \
-            --max-sign-attempts 50 \
+            --max-sign-attempts 100 \
             --with-compute-unit-price 100000 \
             --use-rpc \
-            2>&1 | tee /dev/tty)
+            2>&1)
+
+          # Print output in real-time
           echo "$OUTPUT"
 
+          # Check for success
           if ! echo "$OUTPUT" | grep -q "Buffer:"; then
             echo "Error: Buffer creation failed"
-            echo "$OUTPUT"
             exit 1
           fi
 
+          # Extract buffer if successful
           BUFFER=$(echo "$OUTPUT" | grep "Buffer:" | cut -d " " -f2)
           if [ -z "$BUFFER" ]; then
             echo "Error: Could not extract buffer address"

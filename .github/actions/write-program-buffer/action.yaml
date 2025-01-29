@@ -46,6 +46,44 @@ runs:
           echo "Program does not exist, skipping buffer creation"
         fi
 
+    - name: Check program size
+      id: check-size
+      shell: bash
+      run: |
+        # Get current program size if it exists
+        PROGRAM_INFO=$(solana program show ${{ inputs.program-id }} -u ${{ inputs.rpc-url }})
+        if echo "$PROGRAM_INFO" | grep -q "Data Length:"; then
+          # Extract size from format "Data Length: 212225 (0x33d01) bytes"
+          CURRENT_SIZE=$(echo "$PROGRAM_INFO" | grep "Data Length:" | sed -E 's/.*Data Length: ([0-9]+).*/\1/')
+          echo "Current program size: $CURRENT_SIZE bytes"
+          
+          NEW_SIZE=$(wc -c < ./target/deploy/${{ inputs.program }}.so)
+          echo "New program size: $NEW_SIZE bytes"
+          
+          if [ $NEW_SIZE -gt $CURRENT_SIZE ]; then
+            ADDITIONAL_BYTES=$((NEW_SIZE - CURRENT_SIZE))
+            echo "Program needs to be extended by $ADDITIONAL_BYTES bytes"
+            echo "needs_extend=true" >> $GITHUB_OUTPUT
+            echo "additional_bytes=$ADDITIONAL_BYTES" >> $GITHUB_OUTPUT
+          else
+            echo "No extension needed"
+            echo "needs_extend=false" >> $GITHUB_OUTPUT
+          fi
+        else
+          echo "Program not found, no extension needed"
+          echo "needs_extend=false" >> $GITHUB_OUTPUT
+        fi
+
+    - name: Extend program
+      if: steps.check-size.outputs.needs_extend == 'true'
+      shell: bash
+      run: |
+        echo "Extending program by ${{ steps.check-size.outputs.additional_bytes }} bytes"
+        solana program extend ${{ inputs.program-id }} \
+          ${{ steps.check-size.outputs.additional_bytes }} \
+          --keypair ./deploy-keypair.json \
+          -u ${{ inputs.rpc-url }}
+
     - name: Write program buffer
       id: write-buffer
       if: steps.check-program.outputs.exists == 'true'

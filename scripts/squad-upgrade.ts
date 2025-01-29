@@ -13,8 +13,7 @@ import {
 import { idlAddress } from "@coral-xyz/anchor/dist/cjs/idl";
 import * as yargs from "yargs";
 import {
-  prepareTransactionWithCompute,
-  sendTransactionWithRetry,
+  sendTransaction,
   type TxStatusUpdate,
 } from "./transaction-helpers";
 
@@ -93,7 +92,6 @@ async function createSetBufferAuthorityInstruction(
 
 async function createProgramExtendInstruction(
   programId: PublicKey,
-  upgradeAuthority: PublicKey,
   additionalBytes: number,
   payer?: PublicKey
 ): Promise<TransactionInstruction> {
@@ -215,21 +213,21 @@ async function main() {
     throw new Error("Could not fetch program or buffer account");
   }
 
-  const currentSize = programAccount.data.length;
-  const newSize = bufferAccount.data.length;
-  const additionalBytes = Math.max(0, newSize - currentSize);
+  // This is how you could extend program via squads. But its better to do it in the github action flow
+  // const currentSize = programAccount.data.length;
+  // const newSize = bufferAccount.data.length;
+  // const additionalBytes = Math.max(0, newSize - currentSize);
 
-  // Create extend instruction if needed
-  let extendIx: TransactionInstruction | undefined;
-  if (additionalBytes > 0) {
-    console.log(`Extending program by ${additionalBytes} bytes`);
-    extendIx = await createProgramExtendInstruction(
-      programId,
-      vaultPda,
-      additionalBytes,
-      vaultPda // vault pays for extension
-    );
-  }
+  // // Create extend instruction if needed
+  // let extendIx: TransactionInstruction | undefined;
+  // if (additionalBytes > 0) {
+  //   console.log(`Extending program by ${additionalBytes} bytes`);
+  //   extendIx = await createProgramExtendInstruction(
+  //     programId,
+  //     additionalBytes,
+  //     vaultPda
+  //   );
+  // }
 
   // Create both upgrade instructions
   const programUpgradeIx = await createProgramUpgradeInstruction(
@@ -248,12 +246,6 @@ async function main() {
   // Build transaction message with all instructions
   // NOTE: You first need to upgrade the IDL if you do it after it says the program is not deployed ...
   let instructions = [idlUpgradeIx];
-
-  // Add extend instruction if needed
-  if (extendIx) {
-    console.log("Adding extend instruction");
-    instructions.push(extendIx);
-  }
 
   // Add program upgrade instruction
   instructions.push(programUpgradeIx);
@@ -301,38 +293,13 @@ async function main() {
     const tx = new Transaction();
     tx.recentBlockhash = (await connection.getLatestBlockhash()).blockhash;
     tx.add(createVaultTxIx);
-    await prepareTransactionWithCompute(
-      connection,
-      tx,
-      keypair.publicKey,
-      100_000
-    );
 
     // Send transaction
-    const createVaultSignature = await sendTransactionWithRetry(
+    const createVaultSignature = await sendTransaction(
       connection,
       tx,
       [keypair],
-      {
-        commitment: "confirmed",
-        skipPreflight: true,
-        onStatusUpdate: (status: TxStatusUpdate) => {
-          if (status.status === "confirmed") {
-            console.log("Transaction confirmed:", status.result);
-          }
-        },
-      }
-    );
-
-    const latestBlockHash = await connection.getLatestBlockhash();
-
-    await connection.confirmTransaction(
-      {
-        blockhash: latestBlockHash.blockhash,
-        lastValidBlockHeight: latestBlockHash.lastValidBlockHeight,
-        signature: createVaultSignature,
-      },
-      "confirmed"
+      100000
     );
 
     console.log("Transaction Created - Signature:", createVaultSignature);
@@ -340,25 +307,15 @@ async function main() {
     // Create proposal instruction
     console.log("\n=== Creating Proposal ===");
     console.log("\nWith transaction index:", newTransactionIndex);
-    const proposalIx = await multisig.instructions.proposalCreate({
-      multisigPda,
-      transactionIndex: newTransactionIndex,
-      creator: keypair.publicKey,
-    });
+    // const proposalIx = await multisig.instructions.proposalCreate({
+    //   multisigPda,
+    //   transactionIndex: newTransactionIndex,
+    //   creator: keypair.publicKey,
+    // });
 
     // Create and prepare proposal transaction
-    const proposalTx = new Transaction();
-    proposalTx.recentBlockhash = (
-      await connection.getLatestBlockhash()
-    ).blockhash;
-    proposalTx.add(proposalIx);
-    await prepareTransactionWithCompute(
-      connection,
-      proposalTx,
-      keypair.publicKey,
-      100_000
-    );
-
+    // const proposalTx = new Transaction();
+    // proposalTx.add(proposalIx);
     // // Send proposal transaction
     // const proposalSignature = await sendTransactionWithRetry(
     //   connection,

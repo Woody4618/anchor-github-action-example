@@ -8,12 +8,11 @@ pub mod transaction_example {
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
         msg!("Greetings from: {:?}", ctx.program_id);
-        //panic!("test");
-        ctx.accounts.counter.count += 1;
-        emit!(CounterEvent {
-            counter: ctx.accounts.counter.count,
-            timestamp: Clock::get()?.unix_timestamp,
-        });
+        ctx.accounts.counter.count = 0;  // Initialize to 0 instead of incrementing
+        Ok(())
+    }
+
+    pub fn increment(ctx: Context<Increment>) -> Result<()> {
         ctx.accounts.counter.count += 1;
         emit!(CounterEvent {
             counter: ctx.accounts.counter.count,
@@ -35,6 +34,14 @@ pub struct Initialize<'info> {
     )]
     pub counter: Account<'info, Counter>,
     pub system_program: Program<'info, System>,
+}
+
+#[derive(Accounts)]
+pub struct Increment<'info> {
+    #[account(mut)]
+    pub signer: Signer<'info>,
+    #[account(mut, seeds = [b"counter"], bump)]
+    pub counter: Account<'info, Counter>,
 }
 
 #[account]

@@ -8,7 +8,7 @@ import {
   SYSVAR_RENT_PUBKEY,
   TransactionInstruction,
   Transaction,
-  VersionedTransaction,
+  SystemProgram,
 } from "@solana/web3.js";
 import { idlAddress } from "@coral-xyz/anchor/dist/cjs/idl";
 import * as yargs from "yargs";
@@ -88,6 +88,42 @@ async function createSetBufferAuthorityInstruction(
     ],
     programId: BPF_UPGRADE_LOADER_ID,
     data: Buffer.from([4, 0, 0, 0]), // SetBufferAuthority instruction
+  });
+}
+
+async function createProgramExtendInstruction(
+  programId: PublicKey,
+  upgradeAuthority: PublicKey,
+  additionalBytes: number,
+  payer?: PublicKey
+): Promise<TransactionInstruction> {
+  const [programDataAddress] = await PublicKey.findProgramAddress(
+    [programId.toBuffer()],
+    BPF_UPGRADE_LOADER_ID
+  );
+
+  // Create instruction data: [10, additional_bytes]
+  const data = Buffer.alloc(8);
+  data.writeUInt32LE(10, 0); // ExtendProgram instruction discriminator (10)
+  data.writeUInt32LE(additionalBytes, 4); // Number of bytes to extend
+
+  const keys = [
+    { pubkey: programDataAddress, isWritable: true, isSigner: false },
+    { pubkey: programId, isWritable: true, isSigner: false },
+  ];
+
+  // Add system program and payer if payer is provided
+  if (payer) {
+    keys.push(
+      { pubkey: SystemProgram.programId, isWritable: false, isSigner: false },
+      { pubkey: payer, isWritable: true, isSigner: true }
+    );
+  }
+
+  return new TransactionInstruction({
+    keys,
+    programId: BPF_UPGRADE_LOADER_ID,
+    data,
   });
 }
 
@@ -171,6 +207,30 @@ async function main() {
     vaultPda
   );
 
+  // Get current and new program sizes
+  const programAccount = await connection.getAccountInfo(programId);
+  const bufferAccount = await connection.getAccountInfo(programBuffer);
+
+  if (!programAccount || !bufferAccount) {
+    throw new Error("Could not fetch program or buffer account");
+  }
+
+  const currentSize = programAccount.data.length;
+  const newSize = bufferAccount.data.length;
+  const additionalBytes = Math.max(0, newSize - currentSize);
+
+  // Create extend instruction if needed
+  let extendIx: TransactionInstruction | undefined;
+  if (additionalBytes > 0) {
+    console.log(`Extending program by ${additionalBytes} bytes`);
+    extendIx = await createProgramExtendInstruction(
+      programId,
+      vaultPda,
+      additionalBytes,
+      vaultPda // vault pays for extension
+    );
+  }
+
   // Create both upgrade instructions
   const programUpgradeIx = await createProgramUpgradeInstruction(
     programId,
@@ -187,8 +247,18 @@ async function main() {
 
   // Build transaction message with all instructions
   // NOTE: You first need to upgrade the IDL if you do it after it says the program is not deployed ...
-  let instructions = [idlUpgradeIx, programUpgradeIx];
+  let instructions = [idlUpgradeIx];
 
+  // Add extend instruction if needed
+  if (extendIx) {
+    console.log("Adding extend instruction");
+    instructions.push(extendIx);
+  }
+
+  // Add program upgrade instruction
+  instructions.push(programUpgradeIx);
+
+  // Add verification instruction if provided
   if (argv.pdaTx) {
     const verificationTx = await parseVerificationTransaction(argv.pdaTx);
     if (verificationTx.instructions.length > 0) {

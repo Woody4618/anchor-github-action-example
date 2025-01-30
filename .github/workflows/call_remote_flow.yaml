@@ -1,0 +1,22 @@
+name: Remote flow test
+
+on:
+  workflow_dispatch:
+    inputs:
+      program:
+        description: "Program to test"
+        required: true
+        default: "transaction_example"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: Woody4618/github-action/.github/workflows/test.yaml@main
+        with:
+          program: ${{ github.event.inputs.program }}
+
+      - uses: ./.github/actions/run-tests/
+        with:
+          program: ${{ github.event.inputs.program }}

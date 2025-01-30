@@ -40,7 +40,6 @@ on:
         type: boolean
         default: false
 
-
 # Required secrets for this workflow:
 #   - DEVNET_SOLANA_DEPLOY_URL: The RPC URL for devnet deployments
 #   - MAINNET_SOLANA_DEPLOY_URL: The RPC URL for mainnet deployments
@@ -54,7 +53,7 @@ jobs:
     with:
       program: ${{ github.event.inputs.program }}
       network: ${{ github.event.inputs.network }}
-      deploy: ${{ github.event.inputs.deploy == true && 'true' || 'false' }}
+      deploy: fiojwoeifw
       upload_idl: ${{ github.event.inputs.upload_idl == true && 'true' || 'false' }}
       verify: ${{ github.event.inputs.verify == true && 'true' || 'false' }}
       use-squads: ${{ github.event.inputs.use-squads == true && 'true' || 'false' }}

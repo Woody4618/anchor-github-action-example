@@ -18,6 +18,6 @@ on:
 
 jobs:
   test:
-    uses: Woody4618/github-action/.github/workflows/reusable-test.yaml@main
+    uses: Woody4618/github-action/.github/workflows/reusable-test@main
     with:
       program: ${{ 'transaction_example' }}

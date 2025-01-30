@@ -11,7 +11,7 @@ jobs:
     uses: Woody4618/github-action/.github/workflows/reusable-build.yaml@main
     with:
       program: "transaction_example"
-      network: "devnet"
+      network: "mainnet"
       deploy: true
       upload_idl: true
       verify: true

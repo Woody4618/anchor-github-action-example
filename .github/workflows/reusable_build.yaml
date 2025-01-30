@@ -53,10 +53,10 @@ jobs:
     with:
       program: ${{ github.event.inputs.program }}
       network: ${{ github.event.inputs.network }}
-      deploy: ${{ github.event.inputs.deploy }}
-      upload_idl: ${{ github.event.inputs.upload_idl }}
-      verify: ${{ github.event.inputs.verify }}
-      use-squads: ${{ github.event.inputs.use-squads }}
+      deploy: ${{ github.event.inputs.deploy == true && 'true' || 'false' }}
+      upload_idl: ${{ github.event.inputs.upload_idl == true && 'true' || 'false' }}
+      verify: ${{ github.event.inputs.verify == true && 'true' || 'false' }}
+      use-squads: ${{ github.event.inputs.use-squads == true && 'true' || 'false' }}
     secrets:
       DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
       MAINNET_SOLANA_DEPLOY_URL: ${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}

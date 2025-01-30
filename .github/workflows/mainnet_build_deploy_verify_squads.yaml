@@ -5,6 +5,12 @@ env:
 
 on:
   workflow_dispatch:
+    inputs:
+      priority_fee:
+        description: "Priority fee for transactions"
+        required: true
+        default: "300000"
+        type: string
 
 jobs:
   build:
@@ -16,7 +22,8 @@ jobs:
       upload_idl: true
       verify: true
       use-squads: true
-      priority-fee: 300000
+      priority-fee: ${{ github.event.inputs.priority_fee }}
+
     secrets:
       DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
       MAINNET_SOLANA_DEPLOY_URL: ${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}

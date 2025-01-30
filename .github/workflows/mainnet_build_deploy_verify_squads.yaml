@@ -8,7 +8,7 @@ on:
 
 jobs:
   build:
-    uses: Woody4618/github-action/.github/workflows/reusable-build.yaml@v0.1.0
+    uses: Woody4618/github-action/.github/workflows/reusable-build.yaml
     with:
       program: "transaction_example"
       network: "devnet"

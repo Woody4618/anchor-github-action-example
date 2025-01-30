@@ -4,11 +4,11 @@ env:
   SOLANA_VERIFY_VERSION: "0.4.1" # Version of solana-verify to use
 
 on:
-  workflow_dispatch: 
+  workflow_dispatch:
 
 jobs:
   build:
-    uses: Woody4618/github-action/.github/workflows/reusable-build.yaml
+    uses: Woody4618/github-action/.github/workflows/reusable-build.yaml@main
     with:
       program: "transaction_example"
       network: "devnet"

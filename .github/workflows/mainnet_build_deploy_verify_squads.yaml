@@ -4,7 +4,7 @@ env:
   SOLANA_VERIFY_VERSION: "0.4.1" # Version of solana-verify to use
 
 on:
-  workflow_dispatch: # Allow manual triggering
+  workflow_dispatch: 
 
 jobs:
   build:

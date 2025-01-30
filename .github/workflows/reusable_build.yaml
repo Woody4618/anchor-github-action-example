@@ -50,20 +50,20 @@ on:
 jobs:
   build:
     uses: Woody4618/github-action/.github/workflows/reusable-build.yaml@main
-    with:
-      program: ${{ github.event.inputs.program }}
-      network: ${{ github.event.inputs.network }}
-      deploy: fiojwoeifw
-      upload_idl: ${{ github.event.inputs.upload_idl == true && 'true' || 'false' }}
-      verify: ${{ github.event.inputs.verify == true && 'true' || 'false' }}
-      use-squads: ${{ github.event.inputs.use-squads == true && 'true' || 'false' }}
-    secrets:
-      DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
-      MAINNET_SOLANA_DEPLOY_URL: ${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}
-      DEVNET_DEPLOYER_KEYPAIR: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}
-      MAINNET_DEPLOYER_KEYPAIR: ${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}
-      PROGRAM_ADDRESS_KEYPAIR: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
-      DEVNET_MULTISIG: ${{ secrets.DEVNET_MULTISIG }}
-      DEVNET_MULTISIG_VAULT: ${{ secrets.DEVNET_MULTISIG_VAULT }}
-      MAINNET_MULTISIG: ${{ secrets.MAINNET_MULTISIG }}
-      MAINNET_MULTISIG_VAULT: ${{ secrets.MAINNET_MULTISIG_VAULT }}
+    # with:
+    #   program: ${{ github.event.inputs.program }}
+    #   network: ${{ github.event.inputs.network }}
+    #   deploy: fiojwoeifw
+    #   upload_idl: ${{ github.event.inputs.upload_idl == true && 'true' || 'false' }}
+    #   verify: ${{ github.event.inputs.verify == true && 'true' || 'false' }}
+    #   use-squads: ${{ github.event.inputs.use-squads == true && 'true' || 'false' }}
+    # secrets:
+    #   DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
+    #   MAINNET_SOLANA_DEPLOY_URL: ${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}
+    #   DEVNET_DEPLOYER_KEYPAIR: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}
+    #   MAINNET_DEPLOYER_KEYPAIR: ${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}
+    #   PROGRAM_ADDRESS_KEYPAIR: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
+    #   DEVNET_MULTISIG: ${{ secrets.DEVNET_MULTISIG }}
+    #   DEVNET_MULTISIG_VAULT: ${{ secrets.DEVNET_MULTISIG_VAULT }}
+    #   MAINNET_MULTISIG: ${{ secrets.MAINNET_MULTISIG }}
+    #   MAINNET_MULTISIG_VAULT: ${{ secrets.MAINNET_MULTISIG_VAULT }}

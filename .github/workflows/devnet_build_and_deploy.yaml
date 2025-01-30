@@ -16,6 +16,7 @@ jobs:
       upload_idl: true
       verify: false
       use-squads: false
+      priority-fee: 300000
     secrets:
       DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
       DEVNET_DEPLOYER_KEYPAIR: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}

@@ -1,8 +1,8 @@
-name: Test Program
+name: Anchor Tests
 
 on:
   push:
-    branches: ["*"]
+    branches: [main]
     paths:
       - "programs/**"
       - "tests/**"
@@ -18,10 +18,6 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
-
-      - uses: ./.github/actions/run-tests/
-        with:
-          program: ${{ github.event.inputs.program }}
+    uses: Woody4618/github-action/.github/workflows/reusable-test.yaml@main
+    with:
+      program: ${{ 'transaction_example' }}

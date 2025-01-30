@@ -1,4 +1,4 @@
-name: Build Program
+name: Build Program From another repo
 
 # Constants
 env:
@@ -23,22 +23,18 @@ on:
         description: "Deploy program"
         required: false
         type: boolean
-        default: false
       upload_idl:
         description: "Upload IDL"
         required: false
         type: boolean
-        default: true
       verify:
         description: "Verify build"
         required: false
         type: boolean
-        default: true
       use-squads:
         description: "Use Squads for deployment"
         required: false
         type: boolean
-        default: false
   # push:
   #   branches: [main]
   # pull_request:

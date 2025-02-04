@@ -1,4 +1,4 @@
-name: Devnet Build and Deploy with IDL
+name: Devnet Test build
 
 env:
   SOLANA_VERIFY_VERSION: "0.4.1" # Version of solana-verify to use

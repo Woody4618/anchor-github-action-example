@@ -23,6 +23,7 @@ jobs:
       verify: false
       use-squads: false
       priority-fee: ${{ github.event.inputs.priority_fee }}
+    secrets:
       DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
       DEVNET_DEPLOYER_KEYPAIR: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}
       PROGRAM_ADDRESS_KEYPAIR: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}

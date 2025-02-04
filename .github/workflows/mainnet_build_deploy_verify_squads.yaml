@@ -21,7 +21,7 @@ jobs:
       deploy: true
       upload_idl: true
       verify: true
-      use-squads: true
+      use-squads: false
       priority-fee: ${{ github.event.inputs.priority_fee }}
 
     secrets:

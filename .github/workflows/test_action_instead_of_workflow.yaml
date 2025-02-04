@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: Woody4618/solana-github-action-workflow/actions/build@main
+      - uses: Woody4618/solana-github-action-workflow/.github/actions/build@main
         with:
           program: "transaction_example"
           network: "devnet"

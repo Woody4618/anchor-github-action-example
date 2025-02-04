@@ -3,7 +3,7 @@ seeds = true
 skip-lint = false
 
 [programs.localnet]
-transaction_example = "BhV84MZrRnEvtWLdWMRJGJr1GbusxfVMHAwc3pq92g4z"
+transaction_example = "ancA4duevpt3eSgS5J7cD8oJntmfLKJDM59GhMtegES"
 
 [workspace]
 members = [

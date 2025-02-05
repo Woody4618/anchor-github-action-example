@@ -1,8 +1,5 @@
 name: Release to mainnet with IDL and verify and use squads
 
-env:
-  SOLANA_VERIFY_VERSION: "0.4.1" # Version of solana-verify to use
-
 on:
   workflow_dispatch:
     inputs:
@@ -25,12 +22,8 @@ jobs:
       priority-fee: ${{ github.event.inputs.priority_fee }}
 
     secrets:
-      DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}
       MAINNET_SOLANA_DEPLOY_URL: ${{ secrets.MAINNET_SOLANA_DEPLOY_URL }}
-      DEVNET_DEPLOYER_KEYPAIR: ${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}
       MAINNET_DEPLOYER_KEYPAIR: ${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}
       PROGRAM_ADDRESS_KEYPAIR: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}
-      DEVNET_MULTISIG: ${{ secrets.DEVNET_MULTISIG }}
-      DEVNET_MULTISIG_VAULT: ${{ secrets.DEVNET_MULTISIG_VAULT }}
       MAINNET_MULTISIG: ${{ secrets.MAINNET_MULTISIG }}
       MAINNET_MULTISIG_VAULT: ${{ secrets.MAINNET_MULTISIG_VAULT }}

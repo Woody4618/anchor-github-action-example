@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    uses: Woody4618/solana-github-action-workflow/.github/workflows/reusable-build.yaml@main
+    uses: Woody4618/github-workflows/.github/workflows/reusable-build.yaml@main
     with:
       program: "transaction_example"
       network: "devnet"

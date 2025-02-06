@@ -84,10 +84,10 @@
   resolved "https://registry.npmjs.org/@noble/hashes/-/hashes-1.7.0.tgz"
   integrity sha512-HXydb0DgzTpDPwbVeDGCG1gIu7X6+AuU6Zl6av/E/KG8LMsvPntvq+w17CHRpKBmN6Ybdrt1eP3k4cj8DJa78w==
 
-"@solana-developers/helpers@^2.5.6":
-  version "2.6.0"
-  resolved "https://registry.yarnpkg.com/@solana-developers/helpers/-/helpers-2.6.0.tgz#11ab2aedfc5a79e880a5e7ac071d3b0c53fd9b40"
-  integrity sha512-XSZpgCl5v9kiQruj+760Sr7PxX+AGdbgz3dFwTWZCClqxjgaX9LiguPGAcM5iWsYhhIaeKXOWY0rVsNp1909Fg==
+"@solana-developers/helpers@^2.7.0":
+  version "2.7.0"
+  resolved "https://registry.yarnpkg.com/@solana-developers/helpers/-/helpers-2.7.0.tgz#412283245b129dfbe0e5a94b14becc8952ceb757"
+  integrity sha512-b00myc4LkKgdJarAk6ILAMQ4IDd+ixNua71GDCejoOie+SkL1cTedyBLQw0h6OJqA2NgigQRKM+apEop9ozXQw==
   dependencies:
     "@coral-xyz/anchor" "^0.30.1"
     "@solana/spl-token" "^0.4.8"

@@ -1,5 +1,4 @@
 import { Program } from "@coral-xyz/anchor";
-import { getKeypairFromFile } from "@solana-developers/helpers";
 import { TransactionExample } from "../target/types/transaction_example";
 import { strict as assert } from "assert";
 const anchor = require("@coral-xyz/anchor");

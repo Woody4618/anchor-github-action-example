@@ -1,182 +1,179 @@
-// Comment out until new helpers package release
+import { Program } from "@coral-xyz/anchor";
+import { getKeypairFromFile, prepareTransactionWithCompute } from "@solana-developers/helpers";
+import { TransactionExample } from "../target/types/transaction_example";
+import {
+  getIdlParsedAccountData,
+  parseAnchorTransactionEvents,
+  decodeAnchorTransaction,
+  sendTransaction,
+} from "@solana-developers/helpers";
+import { Connection, PublicKey } from "@solana/web3.js";
+import { strict as assert } from "assert";
+const anchor = require("@coral-xyz/anchor");
 
-// import { Program } from "@coral-xyz/anchor";
-// import { getKeypairFromFile, prepareTransactionWithCompute } from "@solana-developers/helpers";
-// import { TransactionExample } from "../target/types/transaction_example";
-// import {
-//   getIdlParsedAccountData,
-//   parseAnchorTransactionEvents,
-//   decodeAnchorTransaction,
-//   sendTransaction,
-//   //} from "@solana-developers/helpers";
-// } from "/Users/jonasmac2/Documents/GitHub/helpers/src/lib/transaction";
-// import { Connection, PublicKey } from "@solana/web3.js";
-// import { strict as assert } from "assert";
-// const anchor = require("@coral-xyz/anchor");
+describe("transaction-example", () => {
+  anchor.setProvider(anchor.AnchorProvider.env());
 
-// describe("transaction-example", () => {
-//   anchor.setProvider(anchor.AnchorProvider.env());
+  const program = anchor.workspace
+    .TransactionExample as Program<TransactionExample>;
 
-//   const program = anchor.workspace
-//     .TransactionExample as Program<TransactionExample>;
+  it("Initialize counter!", async () => {
+    const keyPair = await getKeypairFromFile();
+    const connection = new Connection(
+      anchor.getProvider().connection.rpcEndpoint,
+      "confirmed"
+    );
 
-//   it("Initialize counter!", async () => {
-//     const keyPair = await getKeypairFromFile();
-//     const connection = new Connection(
-//       anchor.getProvider().connection.rpcEndpoint,
-//       "confirmed"
-//     );
+    // Initialize transaction
+    const tx = await program.methods.initialize().transaction();
 
-//     // Initialize transaction
-//     const tx = await program.methods.initialize().transaction();
+    // This could be really nice if RPC providers would all have the same API...
+    // Please fall back to the fee api of your favourite RPC provider to get a good value.
+    const priorityFee = 10000;
 
-//     await prepareTransactionWithCompute(connection, tx, keyPair.publicKey, 10000);
+    var signature = await sendTransaction(connection, tx, [keyPair], priorityFee);
+    console.log("Initialize signature:", signature);
 
-//     // This could be really nice if RPC providers would all have the same API...
-//     // Please fall back to the fee api of your favourite RPC provider to get a good value.
-//     const priorityFee = 10000;
+    // This is how to subscribe to events in anchor
+    const subscriptionId = await program.addEventListener(
+      "counterEvent",
+      (event) => {
+        console.log("CounterEvent", event);
+      }
+    );
 
-//     var signature = await sendTransaction(connection, tx, [keyPair], priorityFee);
-//     console.log("Initialize signature:", signature);
+    const incrementTx = await program.methods.increment().transaction();
 
-//     // This is how to subscribe to events in anchor
-//     const subscriptionId = await program.addEventListener(
-//       "counterEvent",
-//       (event) => {
-//         console.log("CounterEvent", event);
-//       }
-//     );
+    var signature = await sendTransaction(connection, incrementTx, [keyPair]);
+    console.log("Your transaction signature", signature);
 
-//     const incrementTx = await program.methods.increment().transaction();
+    const transaction = await connection.getTransaction(signature, {
+      commitment: "confirmed",
+    });
+    console.log("Transaction", transaction);
 
-//     var signature = await sendTransaction(connection, incrementTx, [keyPair]);
-//     console.log("Your transaction signature", signature);
+    // --- Decode Transaction ---
+    const decodedTx = await decodeAnchorTransaction(
+      "./target/idl/transaction_example.json",
+      signature,
+      connection
+    );
 
-//     const transaction = await connection.getTransaction(signature, {
-//       commitment: "confirmed",
-//     });
-//     console.log("Transaction", transaction);
+    console.log(decodedTx.toString());
 
-//     // --- Decode Transaction ---
-//     const decodedTx = await decodeAnchorTransaction(
-//       "./target/idl/transaction_example.json",
-//       signature,
-//       connection
-//     );
+    // --- Parse Events ---
+    const events = await parseAnchorTransactionEvents(
+      "./target/idl/transaction_example.json",
+      signature,
+      connection
+    );
+    console.log("Events:", events);
 
-//     console.log(decodedTx.toString());
+    // --- Parse Account Data ---
 
-//     // --- Parse Events ---
-//     const events = await parseAnchorTransactionEvents(
-//       "./target/idl/transaction_example.json",
-//       signature,
-//       connection
-//     );
-//     console.log("Events:", events);
+    const counterPdaPubkey = PublicKey.findProgramAddressSync(
+      [Buffer.from("counter")],
+      program.programId
+    )[0];
 
-//     // --- Parse Account Data ---
+    const counterData = await getIdlParsedAccountData(
+      "./target/idl/transaction_example.json",
+      "counter",
+      counterPdaPubkey,
+      connection
+    );
 
-//     const counterPdaPubkey = PublicKey.findProgramAddressSync(
-//       [Buffer.from("counter")],
-//       program.programId
-//     )[0];
+    assert(
+      counterData.count == 1,
+      `Expected count to be 1 but got ${counterData.count}`
+    );
 
-//     const counterData = await getIdlParsedAccountData(
-//       "./target/idl/transaction_example.json",
-//       "counter",
-//       counterPdaPubkey,
-//       connection
-//     );
+    await program.removeEventListener(subscriptionId);
+  });
 
-//     assert(
-//       counterData.count == 1,
-//       `Expected count to be 1 but got ${counterData.count}`
-//     );
+  it("Increment counter!", async () => {
+    const keyPair = await getKeypairFromFile();
+    const connection = new Connection(
+      anchor.getProvider().connection.rpcEndpoint,
+      "confirmed"
+    );
 
-//     await program.removeEventListener(subscriptionId);
-//   });
+    // Subscribe to events
+    const subscriptionId = await program.addEventListener(
+      "counterEvent",
+      (event) => {
+        console.log("CounterEvent", event);
+      }
+    );
 
-//   it("Increment counter!", async () => {
-//     const keyPair = await getKeypairFromFile();
-//     const connection = new Connection(
-//       anchor.getProvider().connection.rpcEndpoint,
-//       "confirmed"
-//     );
+    // Increment transaction
+    const tx = await program.methods.increment().transaction();
+    const signature = await sendTransaction(connection, tx, [keyPair]);
+    console.log("Increment signature:", signature);
 
-//     // Subscribe to events
-//     const subscriptionId = await program.addEventListener(
-//       "counterEvent",
-//       (event) => {
-//         console.log("CounterEvent", event);
-//       }
-//     );
+    // Verify counter was incremented
+    const counterPdaPubkey = PublicKey.findProgramAddressSync(
+      [Buffer.from("counter")],
+      program.programId
+    )[0];
 
-//     // Increment transaction
-//     const tx = await program.methods.increment().transaction();
-//     const signature = await sendTransaction(connection, tx, [keyPair]);
-//     console.log("Increment signature:", signature);
+    const counterData = await getIdlParsedAccountData(
+      "./target/idl/transaction_example.json",
+      "counter",
+      counterPdaPubkey,
+      connection
+    );
 
-//     // Verify counter was incremented
-//     const counterPdaPubkey = PublicKey.findProgramAddressSync(
-//       [Buffer.from("counter")],
-//       program.programId
-//     )[0];
+    assert(
+      counterData.count == 2,
+      `Expected count to be 2 but got ${counterData.count}`
+    );
 
-//     const counterData = await getIdlParsedAccountData(
-//       "./target/idl/transaction_example.json",
-//       "counter",
-//       counterPdaPubkey,
-//       connection
-//     );
+    // Parse events and transaction data
+    const events = await parseAnchorTransactionEvents(
+      "./target/idl/transaction_example.json",
+      signature,
+      connection
+    );
+    console.log("Events:", events);
 
-//     assert(
-//       counterData.count == 2,
-//       `Expected count to be 2 but got ${counterData.count}`
-//     );
+    const decodedTx = await decodeAnchorTransaction(
+      "./target/idl/transaction_example.json",
+      signature,
+      connection
+    );
+    console.log(decodedTx.toString());
 
-//     // Parse events and transaction data
-//     const events = await parseAnchorTransactionEvents(
-//       "./target/idl/transaction_example.json",
-//       signature,
-//       connection
-//     );
-//     console.log("Events:", events);
+    await program.removeEventListener(subscriptionId);
+  });
 
-//     const decodedTx = await decodeAnchorTransaction(
-//       "./target/idl/transaction_example.json",
-//       signature,
-//       connection
-//     );
-//     console.log(decodedTx.toString());
+  it.only("Increment counter with priority fees!", async () => {
+    const keyPair = await getKeypairFromFile();
+    const connection = new Connection(
+      anchor.getProvider().connection.rpcEndpoint,
+      "confirmed"
+    );
 
-//     await program.removeEventListener(subscriptionId);
-//   });
+    const initTransaction = await program.methods.initialize().transaction();
 
-//   it("Increment counter with priority fees!", async () => {
-//     const keyPair = await getKeypairFromFile();
-//     const connection = new Connection(
-//       anchor.getProvider().connection.rpcEndpoint,
-//       "confirmed"
-//     );
+    await sendTransaction(
+      connection,
+      initTransaction,
+      [keyPair],
+      10000 // priority fee
+    );
 
-//     const initTransaction = await program.methods.initialize().transaction();
-
-//     await sendTransaction(
-//       connection,
-//       initTransaction,
-//       [keyPair],
-//       10000 // priority fee
-//     );
-
-//     // Increment counter 10 times
-//     for (let i = 0; i < 10; i++) {
-//       const tx = await program.methods.increment().transaction();
-//       await sendTransaction(
-//         connection,
-//         tx,
-//         [keyPair],
-//         10000 // priority fee
-//       );
-//     }
-//   });
-// });
+    // Increment counter 10 times
+    for (let i = 0; i < 10; i++) {
+      const tx = await program.methods.increment().transaction();
+      await sendTransaction(
+        connection,
+        tx,
+        [keyPair],
+        10000, {
+          maxRetries: 11
+        }
+      );
+    }
+  });
+});

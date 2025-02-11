@@ -7,7 +7,7 @@ pub mod transaction_example {
     use super::*;
 
     pub fn initialize(ctx: Context<Initialize>) -> Result<()> {
-        msg!("Greetings from version 3: {:?}", ctx.program_id);
+        msg!("Greetings from version 4: {:?}", ctx.program_id);
         ctx.accounts.counter.count = 0;  // Initialize to 0 instead of incrementing
         Ok(())
     }

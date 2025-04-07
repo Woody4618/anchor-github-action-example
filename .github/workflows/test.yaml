@@ -1,0 +1,33 @@
+name: Test Program
+
+on:
+  workflow_call:
+    inputs:
+      program:
+        description: "Program to test"
+        required: true
+        type: string
+      branch:
+        description: "Branch to test"
+        required: false
+        type: string
+        default: "*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: solana-developers/github-actions/extract-versions@v0.2.4
+        id: versions
+
+      - uses: solana-developers/github-actions/setup-all@v0.2.4
+        with:
+          solana_version: ${{ steps.versions.outputs.solana_version }}
+          anchor_version: ${{ steps.versions.outputs.anchor_version }}
+          node_version: 18
+
+      - uses: solana-developers/github-actions/run-tests@fix-anchor-cache
+        with:
+          program: ${{ inputs.program }}

@@ -26,7 +26,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: solana-developers/github-actions/extract-versions@v0.2.4
+      - uses: solana-developers/github-actions/extract-versions@fix-anchor-cache
         id: versions
 
       - uses: solana-developers/github-actions/setup-all@fix-anchor-cache

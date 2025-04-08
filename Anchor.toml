@@ -12,7 +12,7 @@ members = [
 
 [toolchain]
 anchor_version = "0.31.0"
-solana_version = "2.1.0"
+solana_version = "2.1.18"
 
 [registry]
 url = "https://api.apr.dev"

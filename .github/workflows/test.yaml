@@ -37,4 +37,6 @@ jobs:
 
       - uses: solana-developers/github-actions/run-tests@fix-anchor-cache
         with:
+          solana_version: ${{ steps.versions.outputs.solana_version }}
+          anchor_version: ${{ steps.versions.outputs.anchor_version }}
           program: ${{ inputs.program }}

@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    uses: solana-developers/github-workflows/.github/workflows/reusable-build.yaml@v0.2.5
+    uses: solana-developers/github-workflows/.github/workflows/reusable-build.yaml@v0.2.6
     with:
       program: "transaction_example"
       network: "devnet"

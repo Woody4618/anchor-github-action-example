@@ -102,40 +102,6 @@ jobs:
           NORMALIZED_NAME=$(echo "${{ inputs.program }}" | tr '-' '_')
           echo "PROGRAM_NAME=$NORMALIZED_NAME" >> $GITHUB_ENV
 
-      - name: Extract Addresses from Keypairs
-        run: |
-          echo "Using network: ${{ inputs.network }}"
-
-          # Extract deployer addresses
-          if [ "${{ inputs.network }}" = "mainnet" ]; then
-            if [ -z "${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" ]; then
-              echo "Error: MAINNET_DEPLOYER_KEYPAIR is required"
-              exit 1
-            fi
-            echo "${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
-            DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)
-            echo "Extracted mainnet deployer address: $DEPLOYER_ADDRESS"
-            echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" >> $GITHUB_ENV
-            rm deployer-keypair.json
-          else
-            if [ -z "${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" ]; then
-              echo "Error: DEVNET_DEPLOYER_KEYPAIR is required"
-              exit 1
-            fi
-            echo "${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
-            DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)
-            echo "Extracted devnet deployer address: $DEPLOYER_ADDRESS"
-            echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" >> $GITHUB_ENV
-            rm deployer-keypair.json
-          fi
-
-          # Verify environment variable was set
-          if [ -z "$DEPLOYER_ADDRESS" ]; then
-            echo "Error: Failed to extract deployer address"
-            exit 1
-          fi
-          echo "Final DEPLOYER_ADDRESS from env: $DEPLOYER_ADDRESS"
-
       - name: Check for Anchor.toml
         id: check-anchor
         run: |
@@ -186,6 +152,40 @@ jobs:
           anchor_version: ${{ inputs.override-anchor-version != '' && inputs.override-anchor-version || steps.versions.outputs.anchor_version }}
           verify_version: ${{ env.SOLANA_VERIFY_VERSION }}
 
+      - name: Extract Addresses from Keypairs
+        run: |
+          echo "Using network: ${{ inputs.network }}"
+
+          # Extract deployer addresses
+          if [ "${{ inputs.network }}" = "mainnet" ]; then
+            if [ -z "${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" ]; then
+              echo "Error: MAINNET_DEPLOYER_KEYPAIR is required"
+              exit 1
+            fi
+            echo "${{ secrets.MAINNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
+            DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)
+            echo "Extracted mainnet deployer address: $DEPLOYER_ADDRESS"
+            echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" >> $GITHUB_ENV
+            rm deployer-keypair.json
+          else
+            if [ -z "${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" ]; then
+              echo "Error: DEVNET_DEPLOYER_KEYPAIR is required"
+              exit 1
+            fi
+            echo "${{ secrets.DEVNET_DEPLOYER_KEYPAIR }}" > deployer-keypair.json
+            DEPLOYER_ADDRESS=$(solana-keygen pubkey deployer-keypair.json)
+            echo "Extracted devnet deployer address: $DEPLOYER_ADDRESS"
+            echo "DEPLOYER_ADDRESS=$DEPLOYER_ADDRESS" >> $GITHUB_ENV
+            rm deployer-keypair.json
+          fi
+
+          # Verify environment variable was set
+          if [ -z "$DEPLOYER_ADDRESS" ]; then
+            echo "Error: Failed to extract deployer address"
+            exit 1
+          fi
+          echo "Final DEPLOYER_ADDRESS from env: $DEPLOYER_ADDRESS"
+          
       - name: Debug Initial Structure
         run: |
           echo "Current directory structure:"

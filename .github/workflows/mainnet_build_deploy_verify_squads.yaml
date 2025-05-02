@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    uses: solana-developers/github-workflows/.github/workflows/reusable-build.yaml@v0.2.6
+    uses: solana-developers/github-workflows/.github/workflows/reusable-build.yaml@v0.2.8
     with:
       program: "transaction_example"
       network: "mainnet"
@@ -19,6 +19,7 @@ jobs:
       upload_idl: true
       verify: true
       use-squads: false
+      program-id: "ancA4duevpt3eSgS5J7cD8oJntmfLKJDM59GhMtegES"
       priority-fee: ${{ github.event.inputs.priority_fee }}
 
     secrets:

@@ -186,23 +186,29 @@ jobs:
           fi
           echo "Final DEPLOYER_ADDRESS from env: $DEPLOYER_ADDRESS"
 
-      - name: Conditionally check Program ID matches secrets.PROGRAM_ADDRESS_KEYPAIR
+      - name: Check if Program ID from keypair matches inputs.program-id
         run: |
           if [ -z "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
               echo "🔁 PROGRAM_ADDRESS_KEYPAIR secret not set — skipping check."
               exit 0
           fi
 
-          echo "Expected Program ID: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}"
-          echo -n "Actual Program ID:   "
-          solana-keygen pubkey deployer-keypair.json
+          echo "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" > program-address-keypair.json
 
-          if [ "$(solana-keygen pubkey deployer-keypair.json)" != "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
-              echo "❌ Program ID does not match!"
+          echo -n "Expected Program ID from keypair: "
+          solana-keygen pubkey program-address-keypair.json
+
+          echo "Provided program-id input: ${{ inputs.program-id }}"
+
+          if [ "$(solana-keygen pubkey program-address-keypair.json)" != "${{ inputs.program-id }}" ]; then
+              echo "❌ Program ID does not match the provided input!"
+              rm program-address-keypair.json
               exit 1
           fi
 
-          echo "✅ Program ID matches."
+          echo "✅ Program ID matches the provided input."
+
+          rm program-address-keypair.json
 
       - name: Debug Initial Structure
         run: |

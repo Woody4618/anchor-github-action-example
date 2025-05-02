@@ -201,7 +201,7 @@ jobs:
           echo "Provided program-id input: ${{ inputs.program-id }}"
 
           if [ "$(solana-keygen pubkey program-address-keypair.json)" != "${{ inputs.program-id }}" ]; then
-              echo "❌ Program ID does not match the provided input!"
+              echo "❌ Program ID is not the same is the one from PROGRAM_ADDRESS_KEYPAIR! Either remove the secret or change the program-id input to match the keypair."
               rm program-address-keypair.json
               exit 1
           fi

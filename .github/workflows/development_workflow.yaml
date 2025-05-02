@@ -97,18 +97,6 @@ jobs:
         run: |
           echo "PROGRAM_ID=${{ inputs.program-id }}" >> $GITHUB_ENV
 
-      - name: Check if Program ID matches secrets.PROGRAM_ADDRESS_KEYPAIR
-        run: |
-            echo "Expected Program ID: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}"
-            echo -n "Actual Program ID:   "
-            solana-keygen pubkey deployer-keypair.json
-        
-            if [ "$(solana-keygen pubkey deployer-keypair.json)" != "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
-                echo "❌ Program ID does not match!"
-                exit 1
-            fi
-    
-            echo "✅ Program ID matches."
       - name: Normalize Program Name
         run: |
           NORMALIZED_NAME=$(echo "${{ inputs.program }}" | tr '-' '_')
@@ -197,7 +185,25 @@ jobs:
             exit 1
           fi
           echo "Final DEPLOYER_ADDRESS from env: $DEPLOYER_ADDRESS"
-          
+
+      - name: Conditionally check Program ID matches secrets.PROGRAM_ADDRESS_KEYPAIR
+        run: |
+          if [ -z "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
+              echo "🔁 PROGRAM_ADDRESS_KEYPAIR secret not set — skipping check."
+              exit 0
+          fi
+
+          echo "Expected Program ID: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}"
+          echo -n "Actual Program ID:   "
+          solana-keygen pubkey deployer-keypair.json
+
+          if [ "$(solana-keygen pubkey deployer-keypair.json)" != "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
+              echo "❌ Program ID does not match!"
+              exit 1
+          fi
+
+          echo "✅ Program ID matches."
+
       - name: Debug Initial Structure
         run: |
           echo "Current directory structure:"

@@ -97,6 +97,18 @@ jobs:
         run: |
           echo "PROGRAM_ID=${{ inputs.program-id }}" >> $GITHUB_ENV
 
+      - name: Check if Program ID matches secrets.PROGRAM_ADDRESS_KEYPAIR
+        run: |
+            echo "Expected Program ID: ${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}"
+            echo -n "Actual Program ID:   "
+            solana-keygen pubkey deployer-keypair.json
+        
+            if [ "$(solana-keygen pubkey deployer-keypair.json)" != "${{ secrets.PROGRAM_ADDRESS_KEYPAIR }}" ]; then
+                echo "❌ Program ID does not match!"
+                exit 1
+            fi
+    
+            echo "✅ Program ID matches."
       - name: Normalize Program Name
         run: |
           NORMALIZED_NAME=$(echo "${{ inputs.program }}" | tr '-' '_')

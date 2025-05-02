@@ -22,7 +22,7 @@ jobs:
       upload_idl: true
       verify: false
       use-squads: false
-      program-id: "ancA4duevpt3eSgS5J7cD8oJntmfLKJDM59GhMtegES"
+      program-id: "ancA4duevpt3eSgS5J7cD8oJntmfLKJDM59GhMtegE2"
       priority-fee: ${{ github.event.inputs.priority_fee }}
     secrets:
       DEVNET_SOLANA_DEPLOY_URL: ${{ secrets.DEVNET_SOLANA_DEPLOY_URL }}

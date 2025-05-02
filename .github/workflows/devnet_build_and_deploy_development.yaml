@@ -14,7 +14,7 @@ on:
 
 jobs:
   build:
-    uses: Woody4618/anchor-github-action-example/.github/workflows/reusable-build.yaml@main
+    uses: Woody4618/anchor-github-action-example/.github/workflows/development_workflow.yaml@main
     with:
       program: "transaction_example"
       network: "devnet"

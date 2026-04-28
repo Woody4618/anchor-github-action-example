@@ -20,6 +20,7 @@ jobs:
       network: "devnet"
       deploy: true
       upload_idl: true
+      use-program-metadata-idl: true
       verify: false
       use-squads: false
       program-id: "ancA4duevpt3eSgS5J7cD8oJntmfLKJDM59GhMtegES"

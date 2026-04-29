@@ -21,7 +21,16 @@ pub mod transaction_example {
         Ok(())
     }
 
-        pub fn increment2(ctx: Context<Increment>) -> Result<()> {
+    pub fn increment2(ctx: Context<Increment>) -> Result<()> {
+        ctx.accounts.counter.count += 2;
+        emit!(CounterEvent {
+            counter: ctx.accounts.counter.count,
+            timestamp: Clock::get()?.unix_timestamp,
+        });
+        Ok(())
+    }
+
+    pub fn increment3(ctx: Context<Increment>) -> Result<()> {
         ctx.accounts.counter.count += 2;
         emit!(CounterEvent {
             counter: ctx.accounts.counter.count,

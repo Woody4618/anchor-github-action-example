@@ -18,6 +18,6 @@ on:
 
 jobs:
   test:
-    uses: solana-developers/github-workflows/.github/workflows/test.yaml@v0.3.0
+    uses: solana-foundation/github-workflows/.github/workflows/test.yaml@v0.4.1
     with:
       program: ${{ 'transaction_example' }}
